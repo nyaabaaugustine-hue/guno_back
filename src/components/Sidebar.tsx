@@ -1,10 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
+  {
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+  },
   {
     label: 'Preparer',
     href: '/preparer',
@@ -86,6 +96,12 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: false })
+    router.push('/auth/signin')
+  }
 
   return (
     <aside
@@ -102,7 +118,7 @@ export default function Sidebar({ collapsed }: SidebarProps) {
         </div>
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="py-4 px-2 space-y-0.5">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
@@ -124,17 +140,20 @@ export default function Sidebar({ collapsed }: SidebarProps) {
         })}
       </nav>
 
-      <div className="p-2 border-t border-dark-100">
-        <Link
-          href="/auth/signin"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-dark-600 hover:text-dark-900 hover:bg-dark-50 transition-colors"
+      <div className="flex-1 min-h-0" />
+
+      <div className="px-3 pt-3 pb-3">
+        <div className="border-t border-dark-100 -mx-3 -mt-3 mb-3" />
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 w-full px-3 py-3.5 rounded-lg text-sm font-medium text-dark-500 hover:text-red-600 hover:bg-red-50 transition-colors"
           title={collapsed ? 'Sign out' : undefined}
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           {!collapsed && <span>Sign out</span>}
-        </Link>
+        </button>
       </div>
     </aside>
   )

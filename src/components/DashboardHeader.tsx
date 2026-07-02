@@ -1,6 +1,7 @@
 'use client'
 
 import { Bell, Search, Menu } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
 interface DashboardHeaderProps {
   onMenuClick: () => void
@@ -8,6 +9,11 @@ interface DashboardHeaderProps {
 }
 
 export default function DashboardHeader({ onMenuClick, collapsed }: DashboardHeaderProps) {
+  const { data: session } = useSession()
+  const userName = session?.user?.name || 'User'
+  const userRole = session?.user?.role || 'User'
+  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
   return (
     <header
       className={`fixed top-0 right-0 h-16 bg-white border-b border-dark-100 z-20 flex items-center justify-between px-6 transition-all duration-300 ${
@@ -35,11 +41,11 @@ export default function DashboardHeader({ onMenuClick, collapsed }: DashboardHea
         </button>
         <div className="flex items-center gap-3 pl-3 border-l border-dark-100">
           <div className="w-8 h-8 bg-juno-dark-green rounded-full flex items-center justify-center text-white text-xs font-semibold">
-            JD
+            {initials}
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-dark-900">Jane Doe</p>
-            <p className="text-xs text-dark-500">Preparer</p>
+            <p className="text-sm font-medium text-dark-900">{userName}</p>
+            <p className="text-xs text-dark-500">{userRole}</p>
           </div>
         </div>
       </div>

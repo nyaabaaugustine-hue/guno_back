@@ -1,0 +1,12 @@
+version: '2'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL
+      - NEXTAUTH_URL
+      - NEXTAUTH_SECRET
+      - SSN_ENCRYPTION_KEY
+      - SENTRY_DSN

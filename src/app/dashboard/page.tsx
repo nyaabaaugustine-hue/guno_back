@@ -1,78 +1,467 @@
-import { DollarSign, Users, FileText, TrendingUp } from 'lucide-react'
+'use client'
 
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState, useRef } from 'react'
+import {
+  DollarSign, Users, FileText, TrendingUp, ArrowUpRight,
+  Clock, CheckCircle2, AlertCircle, Plus, Eye, Activity,
+  Calendar, ChevronRight, BarChart3
+} from 'lucide-react'
+import Link from 'next/link'
+
+// ─── Animated Counter ───────────────────────────────────────────
+function AnimatedNumber({ value, suffix = '', duration = 1500 }: { value: number; suffix?: string; duration?: number }) {
+  const [display, setDisplay] = useState(0)
+  const started = useRef(false)
+
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+
+    const startTime = performance.now()
+    const step = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(eased * value))
+      if (progress < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [value, duration])
+
+  return <span className="tabular-nums">{display.toLocaleString()}{suffix}</span>
+}
+
+// ─── SVG Donut Chart ────────────────────────────────────────────
+function DonutChart({ segments }: {
+  segments: { label: string; value: number; color: string }[]
+}) {
+  const total = segments.reduce((a, b) => a + b.value, 0)
+  const radius = 72
+  const circumference = 2 * Math.PI * radius
+  let offset = 0
+
+  return (
+    <svg viewBox="0 0 200 200" className="w-full h-full">
+      {segments.map((seg) => {
+        const proportion = seg.value / total
+        const segmentLength = proportion * circumference
+        const dashArray = `${segmentLength} ${circumference - segmentLength}`
+        const dashOffset = -offset
+        offset += segmentLength
+        return (
+          <circle
+            key={seg.label}
+            cx="100"
+            cy="100"
+            r={radius}
+            fill="none"
+            stroke={seg.color}
+            strokeWidth="28"
+            strokeDasharray={dashArray}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="butt"
+            transform="rotate(-90 100 100)"
+            className="transition-all duration-700"
+          />
+        )
+      })}
+      <text x="100" y="92" textAnchor="middle" className="text-3xl font-bold" fill="#020617">
+        {total}
+      </text>
+      <text x="100" y="112" textAnchor="middle" className="text-xs" fill="#64748B">
+        Returns
+      </text>
+    </svg>
+  )
+}
+
+// ─── Data ───────────────────────────────────────────────────────
 const stats = [
-  { label: 'Total Returns', value: '147', change: '+12%', icon: FileText, color: 'text-blue-600 bg-blue-100' },
-  { label: 'Active Clients', value: '89', change: '+8%', icon: Users, color: 'text-juno-dark-green bg-juno-light-green' },
-  { label: 'Avg. Processing Time', value: '4.2h', change: '-32%', icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
-  { label: 'Revenue (MTD)', value: '$7,203', change: '+18%', icon: DollarSign, color: 'text-green-600 bg-green-100' },
+  { label: 'Total Returns', value: 147, change: '+12%', trend: 'up' as const, icon: FileText, color: 'text-blue-600 bg-blue-100', chartColor: '#3B82F6' },
+  { label: 'Active Clients', value: 89, change: '+8%', trend: 'up' as const, icon: Users, color: 'text-juno-dark-green bg-juno-light-green', chartColor: '#013A2F' },
+  { label: 'Avg. Processing Time', value: 4.2, change: '-32%', trend: 'down' as const, icon: Clock, color: 'text-purple-600 bg-purple-100', chartColor: '#7C3AED' },
+  { label: 'Revenue (MTD)', value: 7203, change: '+18%', trend: 'up' as const, icon: DollarSign, color: 'text-emerald-600 bg-emerald-100', chartColor: '#059669', isCurrency: true },
+]
+
+const activities = [
+  { action: 'Return completed', client: 'Acme Corp', initials: 'AC', form: '1120', user: 'Jane D.', time: '2h ago', type: 'completed' as const },
+  { action: 'Documents uploaded', client: 'Bob Smith', initials: 'BS', form: '1040', user: 'Bob S.', time: '3h ago', type: 'upload' as const },
+  { action: 'Flagged for review', client: 'TechStart Inc', initials: 'TI', form: '1065', user: 'Mike R.', time: '5h ago', type: 'alert' as const },
+  { action: 'New return created', client: 'Sarah Johnson', initials: 'SJ', form: '1040', user: 'Jane D.', time: '1d ago', type: 'created' as const },
+  { action: 'Review completed', client: 'Global Partners', initials: 'GP', form: '1120-S', user: 'Jane D.', time: '1d ago', type: 'completed' as const },
+]
+
+const deadlines = [
+  { task: 'Q2 Estimated Tax Payment', date: 'Jun 15, 2026', priority: 'high' as const, daysLeft: 13 },
+  { task: 'Extension Filings Due', date: 'Oct 15, 2026', priority: 'medium' as const, daysLeft: 105 },
+  { task: 'Payroll Tax Return', date: 'Jul 31, 2026', priority: 'low' as const, daysLeft: 29 },
+]
+
+const returnsByStatus = [
+  { label: 'Completed', value: 122, color: '#013A2F', count: '122' },
+  { label: 'Draft', value: 12, color: '#94A3B8', count: '12' },
+  { label: 'In Review', value: 8, color: '#3B82F6', count: '8' },
+  { label: 'Processing', value: 5, color: '#F59E0B', count: '5' },
 ]
 
 const recentReturns = [
-  { client: 'Acme Corp', form: '1120', preparer: 'Jane D.', status: 'In Review', date: '2h ago' },
-  { client: 'Bob Smith', form: '1040', preparer: 'Jane D.', status: 'Completed', date: '5h ago' },
-  { client: 'TechStart Inc', form: '1065', preparer: 'Mike R.', status: 'Processing', date: '1d ago' },
-  { client: 'Sarah Johnson', form: '1040', preparer: 'Jane D.', status: 'Draft', date: '2d ago' },
-  { client: 'Global Partners', form: '1120-S', preparer: 'Mike R.', status: 'In Review', date: '2d ago' },
+  { client: 'Acme Corp', form: '1120', status: 'In Review', updated: '2h ago', amount: '$24,500' },
+  { client: 'Bob Smith', form: '1040', status: 'Completed', updated: '5h ago', amount: '$8,200' },
+  { client: 'TechStart Inc', form: '1065', status: 'Processing', updated: '1d ago', amount: '$67,800' },
+  { client: 'Sarah Johnson', form: '1040', status: 'Draft', updated: '2d ago', amount: '$12,400' },
+  { client: 'Global Partners', form: '1120-S', status: 'In Review', updated: '2d ago', amount: '$156,000' },
 ]
 
+// ─── Component ──────────────────────────────────────────────────
 export default function DashboardPage() {
+  const { data: session, status: authStatus } = useSession()
+  const router = useRouter()
+  const [greeting, setGreeting] = useState('')
+
+  useEffect(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) setGreeting('Good morning')
+    else if (hour < 18) setGreeting('Good afternoon')
+    else setGreeting('Good evening')
+  }, [])
+
+  useEffect(() => {
+    if (authStatus === 'unauthenticated') router.push('/auth/signin')
+  }, [authStatus, router])
+
+  if (authStatus === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-juno-dark-green border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-dark-500">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) return null
+
+  const userName = session.user?.name || 'User'
+  const firstName = userName.split(' ')[0]
+
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-dark-900">Dashboard</h1>
-        <p className="text-dark-500 text-sm mt-1">Welcome back. Here&apos;s your practice at a glance.</p>
+    <div className="space-y-8">
+      {/* ── Welcome Header ── */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 rounded-full bg-juno-green animate-pulse" />
+              <span className="text-xs font-medium text-dark-400 uppercase tracking-wider">Dashboard</span>
+            </div>
+            <h1 className="text-3xl font-display font-bold text-dark-900 tracking-tight">
+              {greeting}, {firstName}
+            </h1>
+            <p className="text-dark-500 text-sm mt-1">Here&apos;s your practice at a glance.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/tips-limits" className="btn btn-ghost text-sm">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">View Calendar</span>
+            </Link>
+            <Link href="/preparer" className="btn btn-primary shadow-lg shadow-juno-dark-green/20">
+              <Plus className="w-4 h-4" />
+              New Return
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((s) => (
-          <div key={s.label} className="card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.color}`}>
-                <s.icon className="w-5 h-5" />
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {stats.map((s, idx) => (
+          <div
+            key={s.label}
+            className="group relative card p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+            style={{ animationDelay: `${idx * 100}ms` }}
+          >
+            {/* Hover gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-dark-50/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.color} ring-4 ring-white shadow-sm`}>
+                  <s.icon className="w-5.5 h-5.5" />
+                </div>
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                  s.trend === 'up' ? 'text-emerald-700 bg-emerald-50' : 'text-purple-700 bg-purple-50'
+                }`}>
+                  {s.change}
+                  <ArrowUpRight className={`w-3 h-3 ${s.trend === 'down' ? 'rotate-180' : ''}`} />
+                </span>
               </div>
-              <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{s.change}</span>
+
+              {s.label === 'Avg. Processing Time' ? (
+                <p className="text-2xl font-bold text-dark-900 tabular-nums">
+                  <AnimatedNumber value={4} />.<AnimatedNumber value={2} duration={1200} />h
+                </p>
+              ) : s.label === 'Revenue (MTD)' ? (
+                <p className="text-2xl font-bold text-dark-900 tabular-nums">
+                  $<AnimatedNumber value={7203} />
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-dark-900 tabular-nums">
+                  <AnimatedNumber value={s.value} />
+                </p>
+              )}
+
+              <p className="text-sm text-dark-500 mt-1">{s.label}</p>
             </div>
-            <p className="text-2xl font-bold text-dark-900">{s.value}</p>
-            <p className="text-sm text-dark-500 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="card">
+      {/* ── Main Grid ── */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Returns by Status — Donut + Legend */}
+        <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-dark-900">Returns by Status</h2>
+            <BarChart3 className="w-4 h-4 text-dark-400" />
+          </div>
+          <div className="flex items-center gap-6">
+            {/* Donut */}
+            <div className="w-36 h-36 shrink-0">
+              <DonutChart segments={returnsByStatus.map(s => ({
+                label: s.label,
+                value: s.value,
+                color: s.color
+              }))} />
+            </div>
+            {/* Legend */}
+            <div className="flex-1 space-y-3">
+              {returnsByStatus.map((s) => {
+                const pct = Math.round((s.value / returnsByStatus.reduce((a, b) => a + b.value, 0)) * 100)
+                return (
+                  <div key={s.label} className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: s.color }} />
+                    <span className="text-sm text-dark-600 flex-1">{s.label}</span>
+                    <span className="text-sm font-medium text-dark-900 tabular-nums">{s.count}</span>
+                    <span className="text-xs text-dark-400 w-8 text-right tabular-nums">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Upcoming Deadlines */}
+        <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-dark-900">Upcoming Deadlines</h2>
+            <Calendar className="w-4 h-4 text-dark-400" />
+          </div>
+          <div className="space-y-4">
+            {deadlines.map((d) => (
+              <div
+                key={d.task}
+                onClick={() => router.push('/tips-limits')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') router.push('/tips-limits') }}
+                className="group flex items-start gap-3 p-3 -mx-3 rounded-xl hover:bg-dark-50 transition-colors cursor-pointer"
+              >
+                {/* Priority indicator bar */}
+                <div className={`w-1 h-10 rounded-full shrink-0 mt-0.5 ${
+                  d.priority === 'high' ? 'bg-red-500' :
+                  d.priority === 'medium' ? 'bg-amber-400' :
+                  'bg-dark-300'
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green transition-colors">{d.task}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-dark-500">{d.date}</p>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                      d.daysLeft <= 14 ? 'bg-red-50 text-red-600' :
+                      d.daysLeft <= 30 ? 'bg-amber-50 text-amber-600' :
+                      'bg-dark-100 text-dark-500'
+                    }`}>
+                      {d.daysLeft}d left
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+              </div>
+            ))}
+          </div>
+          <Link href="/tips-limits" className="inline-flex items-center gap-1 text-xs font-medium text-juno-dark-green hover:text-juno-mid-green transition-colors mt-4 group">
+            View all deadlines
+            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-dark-900">Quick Actions</h2>
+            <Activity className="w-4 h-4 text-dark-400" />
+          </div>
+          <div className="space-y-2">
+            <Link href="/preparer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-juno-light-green/30 transition-all group">
+              <div className="w-10 h-10 bg-juno-light-green rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-0 transition-all duration-300">
+                <Plus className="w-4.5 h-4.5 text-juno-dark-green" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green transition-colors">New Tax Return</p>
+                <p className="text-xs text-dark-500">Start a new preparation</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all" />
+            </Link>
+            <Link href="/clients" className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 transition-all group">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Users className="w-4.5 h-4.5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-dark-900 group-hover:text-blue-600 transition-colors">Add Client</p>
+                <p className="text-xs text-dark-500">Add a new client to your roster</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+            </Link>
+            <Link href="/assistant" className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 transition-all group">
+              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <Eye className="w-4.5 h-4.5 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-dark-900 group-hover:text-purple-600 transition-colors">Ask Assistant</p>
+                <p className="text-xs text-dark-500">Get tax answers instantly</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+            </Link>
+            <Link href="/advisor" className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50 transition-all group">
+              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                <TrendingUp className="w-4.5 h-4.5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-dark-900 group-hover:text-amber-600 transition-colors">Tax Planning</p>
+                <p className="text-xs text-dark-500">Run advisory scenarios</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Returns Table ── */}
+      <div className="card overflow-hidden hover:shadow-lg transition-shadow duration-300">
         <div className="flex items-center justify-between px-6 py-4 border-b border-dark-100">
-          <h2 className="font-semibold text-dark-900">Recent Returns</h2>
-          <button className="text-sm font-medium text-juno-dark-green hover:underline">View all</button>
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold text-dark-900">Recent Returns</h2>
+            <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full font-medium">{recentReturns.length} active</span>
+          </div>
+          <Link href="/returns" className="text-sm font-medium text-juno-dark-green hover:text-juno-mid-green transition-colors flex items-center gap-1 group">
+            View all
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-dark-100">
-                <th className="text-left px-6 py-3 text-xs font-medium text-dark-500 uppercase tracking-wider">Client</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-dark-500 uppercase tracking-wider">Form</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-dark-500 uppercase tracking-wider">Preparer</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-dark-500 uppercase tracking-wider">Status</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-dark-500 uppercase tracking-wider">Updated</th>
+              <tr className="border-b border-dark-100 bg-dark-50/80">
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-dark-500 uppercase tracking-wider">Client</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-dark-500 uppercase tracking-wider">Form</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-dark-500 uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-dark-500 uppercase tracking-wider">Amount</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-dark-500 uppercase tracking-wider">Updated</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-50">
-              {recentReturns.map((r) => (
-                <tr key={r.client} className="hover:bg-dark-50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-dark-900">{r.client}</td>
-                  <td className="px-6 py-4 text-sm text-dark-600">{r.form}</td>
-                  <td className="px-6 py-4 text-sm text-dark-600">{r.preparer}</td>
+              {recentReturns.map((r, i) => (
+                <tr
+                  key={i}
+                  onClick={() => router.push('/returns')}
+                  className="hover:bg-juno-light-green/10 transition-colors cursor-pointer group"
+                >
                   <td className="px-6 py-4">
-                    <span className={`badge ${
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-xs font-semibold text-dark-600 group-hover:bg-juno-light-green group-hover:text-juno-dark-green transition-colors">
+                        {r.client.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                      </div>
+                      <span className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green transition-colors">{r.client}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <code className="text-xs font-mono font-medium text-dark-600 bg-dark-50 px-2 py-1 rounded-md">{r.form}</code>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center gap-1.5 badge ${
                       r.status === 'Completed' ? 'badge-green' :
                       r.status === 'In Review' ? 'badge-blue' :
                       r.status === 'Processing' ? 'badge-yellow' :
-                      'badge'
-                    }`}>{r.status}</span>
+                      'bg-dark-100 text-dark-600'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        r.status === 'Completed' ? 'bg-juno-dark-green' :
+                        r.status === 'In Review' ? 'bg-blue-500' :
+                        r.status === 'Processing' ? 'bg-amber-500' :
+                        'bg-dark-400'
+                      }`} />
+                      {r.status}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-dark-500">{r.date}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-dark-900 tabular-nums">{r.amount}</td>
+                  <td className="px-6 py-4 text-sm text-dark-500">{r.updated}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ── Recent Activity Timeline ── */}
+      <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-semibold text-dark-900">Recent Activity</h2>
+          <Link href="/returns" className="text-sm font-medium text-juno-dark-green hover:text-juno-mid-green transition-colors flex items-center gap-1 group">
+            View all
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-dark-100" />
+          <div className="space-y-0">
+            {activities.map((a, i) => (
+              <div key={i} className="relative flex items-start gap-4 pb-6 last:pb-0">
+                {/* Timeline dot */}
+                <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ring-4 ring-white ${
+                  a.type === 'completed' ? 'bg-juno-light-green' :
+                  a.type === 'alert' ? 'bg-red-50' :
+                  a.type === 'upload' ? 'bg-blue-50' :
+                  'bg-dark-50'
+                }`}>
+                  {a.type === 'completed' ? <CheckCircle2 className="w-4 h-4 text-juno-dark-green" /> :
+                   a.type === 'alert' ? <AlertCircle className="w-4 h-4 text-red-500" /> :
+                   a.type === 'upload' ? <ArrowUpRight className="w-4 h-4 text-blue-500" /> :
+                   <Plus className="w-4 h-4 text-dark-400" />}
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0 pt-1.5">
+                  <p className="text-sm font-medium text-dark-900">{a.action}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full bg-dark-100 flex items-center justify-center text-[9px] font-semibold text-dark-500">
+                        {a.initials}
+                      </div>
+                      <span className="text-xs text-dark-600 font-medium">{a.client}</span>
+                    </div>
+                    <span className="text-dark-300">·</span>
+                    <span className="text-xs text-dark-400">{a.form}</span>
+                    <span className="text-dark-300">·</span>
+                    <span className="text-xs text-dark-500">{a.user}</span>
+                  </div>
+                  <span className="text-[11px] text-dark-400 mt-0.5 block">{a.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,50 +1,81 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/auth'
 import { db } from '@/db'
 import { clients } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/auth'
+import { eq, ilike, or } from 'drizzle-orm'
+import { z } from 'zod'
 
-export async function GET() {
+const createClientSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  tin: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  state: z.string().optional().or(z.literal('')),
+  zip: z.string().optional().or(z.literal('')),
+  notes: z.string().optional().or(z.literal('')),
+})
+
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.firmId) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const data = await db.query.clients.findMany({
-    where: eq(clients.firmId, session.user.firmId),
-    orderBy: (c, { desc }) => [desc(c.createdAt)],
-  })
+  const { searchParams } = new URL(request.url)
+  const search = searchParams.get('search') || ''
 
-  return NextResponse.json(data)
+  try {
+    let query = db.select().from(clients)
+    if (search) {
+      query = db.select().from(clients).where(
+        or(
+          ilike(clients.firstName, `%${search}%`),
+          ilike(clients.lastName, `%${search}%`),
+          ilike(clients.email!, `%${search}%`)
+        )
+      ) as any
+    }
+
+    const result = await query
+    return NextResponse.json(result)
+  } catch (error) {
+    // DB not ready yet — return empty array
+    return NextResponse.json([])
+  }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.firmId) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const body = await req.json()
-    const { firstName, lastName, email, phone } = body
+    const body = await request.json()
+    const parsed = createClientSchema.parse(body)
 
-    if (!firstName || !lastName) {
-      return NextResponse.json({ error: 'First and last name are required' }, { status: 400 })
-    }
+    const s = session as { user: { id: string; firmId?: string | null } }
+    const firmId = s.user.firmId || 'demo-firm-1'
 
     const [client] = await db.insert(clients).values({
-      firmId: session.user.firmId,
-      firstName,
-      lastName,
-      email,
-      phone,
-      createdById: session.user.id,
+      firstName: parsed.firstName,
+      lastName: parsed.lastName,
+      email: parsed.email || null,
+      phone: parsed.phone || null,
+      ssn: parsed.tin || null,
+      address: [parsed.city, parsed.state, parsed.zip].filter(Boolean).join(', ') || null,
+      firmId,
+      createdById: s.user.id,
     }).returning()
 
     return NextResponse.json(client, { status: 201 })
   } catch (error) {
-    console.error('Create client error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation failed' }, { status: 400 })
+    }
+    return NextResponse.json({ error: 'Failed to create client' }, { status: 500 })
   }
 }

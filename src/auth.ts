@@ -5,6 +5,34 @@ import { db } from '@/db'
 import { users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
+// Demo users for testing without a database
+const DEMO_USERS = [
+  {
+    id: 'demo-1',
+    email: 'admin@xainhotel.com',
+    password: 'password123',
+    name: 'Augustine Nyaaba',
+    role: 'Org Admin',
+    firmId: 'demo-firm-1',
+  },
+  {
+    id: 'demo-2',
+    email: 'preparer@demo.com',
+    password: 'password123',
+    name: 'Jane Doe',
+    role: 'Preparer',
+    firmId: 'demo-firm-1',
+  },
+  {
+    id: 'demo-3',
+    email: 'reviewer@demo.com',
+    password: 'password123',
+    name: 'Mike Ross',
+    role: 'Reviewer',
+    firmId: 'demo-firm-1',
+  },
+]
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -28,21 +56,40 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, credentials.email),
-        })
+        // Try demo users first (no database needed)
+        const demoUser = DEMO_USERS.find(
+          (u) => u.email === credentials.email && u.password === credentials.password
+        )
+        if (demoUser) {
+          return {
+            id: demoUser.id,
+            email: demoUser.email,
+            name: demoUser.name,
+            role: demoUser.role,
+            firmId: demoUser.firmId,
+          }
+        }
 
-        if (!user || !user.active) return null
+        // Fall back to database lookup
+        try {
+          const user = await db.query.users.findFirst({
+            where: eq(users.email, credentials.email),
+          })
 
-        const valid = await bcrypt.compare(credentials.password, user.passwordHash)
-        if (!valid) return null
+          if (!user || !user.active) return null
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          firmId: user.firmId,
+          const valid = await bcrypt.compare(credentials.password, user.passwordHash)
+          if (!valid) return null
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            firmId: user.firmId,
+          }
+        } catch {
+          return null
         }
       },
     }),

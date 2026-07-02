@@ -1,0 +1,43 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "@dietrichgebert/ponytail",
+    "opencode-background-agents",
+    "opencode-supermemory"
+  ],
+  "agent": {
+    "security": {
+      "mode": "subagent"
+    },
+    "review": {
+      "mode": "subagent"
+    },
+    "deploy": {
+      "mode": "subagent"
+    },
+    "db": {
+      "mode": "subagent"
+    },
+    "memory": {
+      "mode": "subagent"
+    }
+  },
+  "commands": {
+    "deploy": {
+      "description": "Full deploy pipeline: test, lint, build, push",
+      "prompt": "Run the deploy agent — typecheck, lint, test, build, git push"
+    },
+    "audit": {
+      "description": "Security audit of recent changes",
+      "prompt": "Run security subagent on changed files and report findings"
+    },
+    "cleanup": {
+      "description": "Find dead code, unused deps, stale files",
+      "prompt": "Check for unused exports, unused dependencies (knip), stale files"
+    },
+    "health": {
+      "description": "Project health check — builds, tests, vulns",
+      "prompt": "Run typecheck, lint, test, check npm audit, git status"
+    }
+  }
+}

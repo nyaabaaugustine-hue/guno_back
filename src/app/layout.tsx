@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { Outfit } from 'next/font/google'
+import { SessionProvider } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import DashboardHeader from '@/components/DashboardHeader'
+import FloatingAIButton from '@/components/FloatingAIButton'
 import '@/styles/globals.css'
 
 const outfit = Outfit({
@@ -11,7 +14,15 @@ const outfit = Outfit({
   display: 'swap',
 })
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-dark-50">
+      {children}
+    </div>
+  )
+}
+
+function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebar, setMobileSidebar] = useState(false)
 
@@ -24,40 +35,58 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <html lang="en" className={outfit.className}>
-      <body>
-        <div className="min-h-screen">
-          {/* Mobile overlay */}
-          {mobileSidebar && (
-            <div
-              className="fixed inset-0 bg-dark-900/50 z-30 lg:hidden"
-              onClick={() => setMobileSidebar(false)}
-            />
-          )}
+    <div className="min-h-screen">
+      {/* Mobile overlay */}
+      {mobileSidebar && (
+        <div
+          className="fixed inset-0 bg-dark-900/50 z-30 lg:hidden"
+          onClick={() => setMobileSidebar(false)}
+        />
+      )}
 
-          {/* Sidebar - visible on lg+, toggleable on mobile */}
-          <div className={`fixed inset-y-0 left-0 z-40 transition-all duration-300 ${
-            mobileSidebar ? 'translate-x-0' : '-translate-x-full'
-          } lg:translate-x-0 lg:static lg:inset-auto`}>
-            <Sidebar collapsed={sidebarCollapsed} />
-          </div>
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-40 transition-all duration-300 ${
+        mobileSidebar ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0 lg:static lg:inset-auto`}>
+        <Sidebar collapsed={sidebarCollapsed} />
+      </div>
 
-          <DashboardHeader
-            onMenuClick={() => setMobileSidebar(!mobileSidebar)}
-            collapsed={sidebarCollapsed}
-          />
+      <DashboardHeader
+        onMenuClick={() => setMobileSidebar(!mobileSidebar)}
+        collapsed={sidebarCollapsed}
+      />
 
-          <main
-            className={`pt-16 min-h-screen transition-all duration-300 ${
-              sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'
-            }`}
-          >
-            <div className="p-6 md:p-8">
-              {children}
-            </div>
-          </main>
+      <main
+        className={`pt-16 min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'
+        }`}
+      >
+        <div className="p-6 md:p-8">
+          {children}
         </div>
-      </body>
-    </html>
+      </main>
+
+      {/* Floating AI Assistant - only on dashboard pages */}
+      <FloatingAIButton />
+    </div>
+  )
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isAuthPage = pathname.startsWith('/auth/')
+
+  return (
+    <SessionProvider>
+      <html lang="en" className={outfit.className}>
+        <body>
+          {isAuthPage ? (
+            <AuthLayout>{children}</AuthLayout>
+          ) : (
+            <AppShell>{children}</AppShell>
+          )}
+        </body>
+      </html>
+    </SessionProvider>
   )
 }
