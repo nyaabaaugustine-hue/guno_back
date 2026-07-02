@@ -56,7 +56,7 @@ export default function Sidebar({ collapsed }: SidebarProps) {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 active
-                  ? 'bg-juno-light-green text-juno-dark-green'
+                  ? 'bg-[#0B3D2E] text-white'
                   : 'text-dark-600 hover:text-dark-900 hover:bg-dark-50'
               )}
               title={collapsed ? item.label : undefined}

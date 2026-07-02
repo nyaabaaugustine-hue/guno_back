@@ -81,8 +81,8 @@ export default function TaxPreparationLayout({ children }: { children: React.Rea
                 className={cn(
                   'flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200',
                   active
-                    ? 'bg-[#0B3D2E] text-white'
-                    : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1A1D1B]'
+                    ? 'bg-[#0B3D2E] text-white shadow-sm'
+                    : 'text-[#6B7280] hover:bg-[#E8F5E8] hover:text-[#0B3D2E]'
                 )}
               >
                 <Icon className={cn('w-5 h-5', active ? 'text-white' : 'text-[#1FAA6F]')} />
