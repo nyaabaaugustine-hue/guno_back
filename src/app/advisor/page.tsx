@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Sparkles } from 'lucide-react'
 import Icon from '@/components/Icon'
 
 const agentPrompts = [

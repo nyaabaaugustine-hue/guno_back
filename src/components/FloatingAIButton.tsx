@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { Sparkles } from 'lucide-react'
 import Icon from '@/components/Icon'
 
 interface Message {

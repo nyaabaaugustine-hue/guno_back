@@ -1,40 +1,56 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Icon from '@/components/Icon'
 
-const preparations = [
-  {
-    id: '1',
-    initials: 'JP',
-    client: 'John Doe - Demo Preparation',
-    email: 'jdoe@juno.tax',
-    taxYear: 2025,
-    returnType: '1040',
-    preparer: '•',
-    status: 'Demo Preparation',
-    hasNotes: false,
-  },
-  {
-    id: '2',
-    initials: 'DC',
-    client: 'Demo Corporation',
-    email: 'dcorp@juno.tax',
-    taxYear: 2025,
-    returnType: '1120-S',
-    preparer: '•',
-    status: 'Demo Preparation',
-    hasNotes: false,
-  },
-]
+interface Preparation {
+  id: string
+  initials: string
+  client: string
+  email: string
+  taxYear: number
+  returnType: string
+  preparer: string
+  status: string
+  hasNotes: boolean
+}
 
 export default function PreparerPage() {
   const [search, setSearch] = useState('')
   const [showAll, setShowAll] = useState(false)
+  const [preparations, setPreparations] = useState<Preparation[]>([])
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const res = await fetch('/api/returns')
+        if (res.ok) {
+          const data = await res.json()
+          setPreparations(data.map((r: any) => ({
+            id: r.id,
+            initials: (r.client || '').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
+            client: r.client || 'Unknown',
+            email: r.email || '',
+            taxYear: r.year || new Date().getFullYear(),
+            returnType: r.form || '1040',
+            preparer: r.preparer || 'Unassigned',
+            status: r.status || 'draft',
+            hasNotes: false,
+          })))
+        }
+      } catch {} finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   const filtered = preparations.filter((r) => {
     const matchesSearch = r.client.toLowerCase().includes(search.toLowerCase())
-    const matchesShowAll = showAll || r.status === 'Demo Preparation'
+    const matchesShowAll = showAll || r.status === 'draft' || r.status === 'in_review' || r.status === 'processing'
     return matchesSearch && matchesShowAll
   })
 
@@ -104,36 +120,50 @@ export default function PreparerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-50">
-              {filtered.map((r) => (
-                <tr key={r.id} className="hover:bg-dark-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-xs font-semibold text-dark-600">
-                        {r.initials}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-dark-900">{r.client}</p>
-                        <p className="text-xs text-dark-400">{r.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-dark-600">{r.taxYear}</td>
-                  <td className="px-6 py-4 text-sm text-dark-600">{r.returnType}</td>
-                  <td className="px-6 py-4 text-sm text-dark-600">{r.preparer}</td>
-                  <td className="px-6 py-4">
-                    <span className="badge badge-blue">{r.status}</span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-dark-400">
-                    {r.hasNotes ? '📝' : '—'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="inline-flex items-center gap-1.5 text-sm font-medium text-juno-dark-green hover:underline">
-                      <Icon name="play" className="w-3.5 h-3.5" />
-                      View Tutorial
-                    </button>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-dark-400">Loading...</td>
                 </tr>
-              ))}
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-dark-400">No preparations found.</td>
+                </tr>
+              ) : (
+                filtered.map((r) => (
+                  <tr key={r.id} className="hover:bg-dark-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-xs font-semibold text-dark-600">
+                          {r.initials}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-dark-600">{r.taxYear}</td>
+                    <td className="px-6 py-4 text-sm text-dark-600">{r.returnType}</td>
+                    <td className="px-6 py-4 text-sm text-dark-600">{r.preparer}</td>
+                    <td className="px-6 py-4">
+                      <span className={`badge ${
+                        r.status === 'Completed' ? 'badge-green' :
+                        r.status === 'in_review' ? 'badge-blue' :
+                        r.status === 'processing' ? 'badge-yellow' :
+                        'badge'
+                      }`}>{r.status}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-dark-400">
+                      {r.hasNotes ? '📝' : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => router.push(`/returns`)}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-juno-dark-green hover:underline"
+                      >
+                        <Icon name="play" className="w-3.5 h-3.5" />
+                        Start
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
