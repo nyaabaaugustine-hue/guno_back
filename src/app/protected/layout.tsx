@@ -6,17 +6,31 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Users, Bot, BarChart3, Briefcase, Building2, Settings,
-  ChevronDown, LogOut, Menu, X, ChevronRight, HelpCircle, FileCheck, FileEdit
+  Gauge, ClipboardEdit, SearchCheck, Sparkles, ChartNoAxesCombined,
+  UserRound, Building2, Settings, ChevronDown, LogOut, Menu, X,
+  ChevronRight, HelpCircle, CreditCard, type LucideIcon
 } from 'lucide-react'
 
-const navItems = [
-  { label: 'Dashboard', href: '/protected/taxPreparation', icon: LayoutDashboard },
-  { label: 'Preparer', href: '/protected/taxPreparation/preparer', icon: FileEdit },
-  { label: 'Reviewer', href: '/protected/taxPreparation/reviewer', icon: FileCheck },
-  { label: 'AI Assistant', href: '#', icon: Bot },
-  { label: 'Reports', href: '#', icon: BarChart3 },
-  { label: 'Clients', href: '/protected/taxPreparation/clients', icon: Briefcase },
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+  badge?: string
+}
+
+const primaryNav: NavItem[] = [
+  { label: 'Dashboard', href: '/protected/taxPreparation', icon: Gauge },
+  { label: 'Preparer', href: '/protected/taxPreparation/preparer', icon: ClipboardEdit },
+  { label: 'Reviewer', href: '/protected/taxPreparation/reviewer', icon: SearchCheck },
+  { label: 'Clients', href: '/protected/taxPreparation/clients', icon: UserRound },
+]
+
+const secondaryNav: NavItem[] = [
+  { label: 'AI Assistant', href: '#', icon: Sparkles, badge: 'New' },
+  { label: 'Reports', href: '#', icon: ChartNoAxesCombined },
+]
+
+const tertiaryNav: NavItem[] = [
   { label: 'Organization', href: '#', icon: Building2 },
   { label: 'Settings', href: '#', icon: Settings },
 ]
@@ -58,38 +72,83 @@ export default function TaxPreparationLayout({ children }: { children: React.Rea
         'fixed top-0 left-0 h-full w-[260px] bg-white border-r border-[#E5E7E5] z-50 flex flex-col transition-transform duration-300',
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}>
-        <div className="flex items-center justify-between h-[70px] px-6 border-b border-[#E5E7E5] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#0B3D2E] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">J</span>
-            </div>
-            <span className="font-bold text-lg text-[#1A1D1B]">Juno</span>
+        <div className="flex items-center gap-3 h-[70px] px-6 border-b border-[#E5E7E5] shrink-0">
+          <div className="w-8 h-8 bg-[#0B3D2E] rounded-xl flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-sm tracking-tight">J</span>
           </div>
-          <button className="lg:hidden p-1 text-[#0B3D2E] hover:text-[#0B3D2E]" onClick={() => setMobileOpen(false)}>
+          <div className="flex flex-col leading-tight">
+            <span className="font-bold text-base text-[#1A1D1B] tracking-tight">Juno</span>
+            <span className="text-[10px] text-[#6B7280] font-medium tracking-wide uppercase">Tax Suite</span>
+          </div>
+          <button className="lg:hidden ml-auto p-1 text-[#0B3D2E]" onClick={() => setMobileOpen(false)}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = pathname === item.href
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200',
-                  active
-                    ? 'bg-[#0B3D2E] text-white shadow-sm'
-                    : 'text-[#6B7280] hover:bg-[#E8F5E8] hover:text-[#0B3D2E]'
-                )}
-              >
-                <Icon className={cn('w-5 h-5', active ? 'text-white' : 'text-[#1FAA6F]')} />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav className="flex-1 py-5 px-4 space-y-5 overflow-y-auto">
+          {/* Primary */}
+          <div className="space-y-0.5">
+            <p className="px-4 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Main</p>
+            <div className="mt-2 space-y-0.5">
+              {primaryNav.map((item) => {
+                const active = pathname === item.href
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={cn(
+                      'group relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                      active
+                        ? 'bg-[#0B3D2E] text-white shadow-md shadow-[#0B3D2E]/15'
+                        : 'text-[#6B7280] hover:bg-[#E8F5E8] hover:text-[#0B3D2E]'
+                    )}
+                  >
+                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#1FAA6F] rounded-r-full" />}
+                    <Icon className={cn('w-[18px] h-[18px] transition-all duration-200', active ? 'text-white' : 'text-[#1FAA6F] group-hover:scale-110')} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Secondary */}
+          <div className="space-y-0.5">
+            <p className="px-4 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Insights</p>
+            <div className="mt-2 space-y-0.5">
+              {secondaryNav.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="group relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#6B7280] hover:bg-[#E8F5E8] hover:text-[#0B3D2E] transition-all duration-200"
+                >
+                  <item.icon className="w-[18px] h-[18px] text-[#1FAA6F] group-hover:scale-110 transition-all duration-200" />
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-auto text-[10px] font-semibold text-white bg-[#1FAA6F] px-2 py-0.5 rounded-full">{item.badge}</span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Tertiary */}
+          <div className="space-y-0.5">
+            <p className="px-4 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Workspace</p>
+            <div className="mt-2 space-y-0.5">
+              {tertiaryNav.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="group relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#6B7280] hover:bg-[#E8F5E8] hover:text-[#0B3D2E] transition-all duration-200"
+                >
+                  <item.icon className="w-[18px] h-[18px] text-[#1FAA6F] group-hover:scale-110 transition-all duration-200" />
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </nav>
 
         <div className="px-3 pb-3">
@@ -121,7 +180,7 @@ export default function TaxPreparationLayout({ children }: { children: React.Rea
           </button>
 
           <h1 className="text-xl font-bold text-[#1A1D1B]">
-            {navItems.find(i => pathname === i.href)?.label || 'Tax Preparation'}
+            {[...primaryNav, ...secondaryNav, ...tertiaryNav].find(i => pathname === i.href)?.label || 'Tax Preparation'}
           </h1>
 
           <div className="hidden md:flex items-center gap-2 ml-auto mr-auto bg-[#E8F5E8] rounded-full px-4 py-1.5">
