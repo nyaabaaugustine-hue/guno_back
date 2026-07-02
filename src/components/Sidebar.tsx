@@ -4,18 +4,27 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
-import Icon from '@/components/Icon'
+import {
+  Gauge, FileEdit, CheckCheck, Bot, Star, Users, Building2, Settings,
+  Lightbulb, LogOut, type LucideIcon
+} from 'lucide-react'
 
-const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: 'home' },
-  { label: 'Preparer', href: '/preparer', icon: 'edit' },
-  { label: 'Reviewer', href: '/reviewer', icon: 'check' },
-  { label: 'Assistant', href: '/assistant', icon: 'chat' },
-  { label: 'Advisor', href: '/advisor', icon: 'star' },
-  { label: 'Clients', href: '/clients', icon: 'teamwork' },
-  { label: 'Organization', href: '/organization', icon: 'building' },
-  { label: 'Settings', href: '/settings', icon: 'settings' },
-  { label: 'Tips & Limits', href: '/tips-limits', icon: 'idea' },
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+}
+
+const navItems: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard', icon: Gauge },
+  { label: 'Preparer', href: '/preparer', icon: FileEdit },
+  { label: 'Reviewer', href: '/reviewer', icon: CheckCheck },
+  { label: 'Assistant', href: '/assistant', icon: Bot },
+  { label: 'Advisor', href: '/advisor', icon: Star },
+  { label: 'Clients', href: '/clients', icon: Users },
+  { label: 'Organization', href: '/organization', icon: Building2 },
+  { label: 'Settings', href: '/settings', icon: Settings },
+  { label: 'Tips & Limits', href: '/tips-limits', icon: Lightbulb },
 ]
 
 interface SidebarProps {
@@ -49,19 +58,21 @@ export default function Sidebar({ collapsed }: SidebarProps) {
       <nav className="py-4 px-2 space-y-0.5">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          const Icon = item.icon
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                 active
-                  ? 'bg-[#0B3D2E] text-white'
+                  ? 'bg-[#0B3D2E] text-white shadow-sm'
                   : 'text-dark-600 hover:text-dark-900 hover:bg-dark-50'
               )}
               title={collapsed ? item.label : undefined}
             >
-              <Icon name={item.icon} className="w-5 h-5" />
+              {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-[#1FAA6F] rounded-r-full" />}
+              <Icon className={cn('w-[18px] h-[18px] shrink-0 transition-transform duration-200', !active && 'group-hover:scale-110')} />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           )
@@ -77,7 +88,7 @@ export default function Sidebar({ collapsed }: SidebarProps) {
           className="flex items-center gap-3 w-full px-3 py-3.5 rounded-lg text-sm font-medium text-dark-500 hover:text-red-600 hover:bg-red-50 transition-colors"
           title={collapsed ? 'Sign out' : undefined}
         >
-          <Icon name="exit" className="w-5 h-5 shrink-0" />
+          <LogOut className="w-5 h-5 shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
