@@ -49,7 +49,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.6.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
+    "lint-staged": "^17.0.8",
     "opencode-background-agents": "^0.1.1",
     "opencode-supermemory": "^2.0.8",
     "postcss": "^8.5.10",
