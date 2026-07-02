@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Clock, Play, Info } from 'lucide-react'
+import Icon from '@/components/Icon'
 
 const preparations = [
   {
@@ -48,7 +48,7 @@ export default function PreparerPage() {
             Preparer
           </div>
           <div className="flex items-center gap-1.5 text-sm text-dark-500">
-            <Clock className="w-4 h-4" />
+            <Icon name="clock" className="w-4 h-4" />
             <span>0/5 Free Preparations started.</span>
           </div>
           <div className="text-sm text-dark-500">4d 12h Left in Your Trial</div>
@@ -68,7 +68,7 @@ export default function PreparerPage() {
         {/* Search + Filter */}
         <div className="flex items-center justify-between p-4 border-b border-dark-100 flex-wrap gap-3">
           <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 text-dark-400 shrink-0" />
+            <Icon name="search" className="w-4 h-4 text-dark-400 shrink-0" />
             <input
               type="text"
               placeholder="Search Client Name"
@@ -128,7 +128,7 @@ export default function PreparerPage() {
                   </td>
                   <td className="px-6 py-4">
                     <button className="inline-flex items-center gap-1.5 text-sm font-medium text-juno-dark-green hover:underline">
-                      <Play className="w-3.5 h-3.5" />
+                      <Icon name="play" className="w-3.5 h-3.5" />
                       View Tutorial
                     </button>
                   </td>
@@ -143,7 +143,7 @@ export default function PreparerPage() {
       <div className="mt-6 card p-6">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 bg-juno-light-green rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-            <Info className="w-4 h-4 text-juno-dark-green" />
+            <Icon name="info" className="w-4 h-4 text-juno-dark-green" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-dark-900 mb-2">How to Evaluate Juno</h3>

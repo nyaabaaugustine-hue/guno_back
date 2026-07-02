@@ -1,7 +1,7 @@
 'use client'
 
-import { X } from 'lucide-react'
 import { useEffect, useRef, useCallback } from 'react'
+import Icon from '@/components/Icon'
 
 interface ModalProps {
   open: boolean
@@ -47,7 +47,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
             onClick={onClose}
             className="p-1 text-dark-400 hover:text-dark-900 rounded-lg hover:bg-dark-50 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <Icon name="cancel" className="w-5 h-5" />
           </button>
         </div>
 

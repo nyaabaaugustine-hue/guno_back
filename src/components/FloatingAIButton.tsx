@@ -1,23 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import {
-  Bot,
-  X,
-  Send,
-  Loader2,
-  Search,
-  BookOpen,
-  FileText,
-  ExternalLink,
-  MessageSquare,
-  Home,
-  HelpCircle,
-  Headphones,
-  ChevronRight,
-  ArrowLeft,
-  Sparkles,
-} from 'lucide-react'
+import Icon from '@/components/Icon'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -31,14 +15,14 @@ type View = 'home' | 'messages' | 'chat'
 interface SupportArticle {
   title: string
   category: string
-  icon: typeof BookOpen
+  icon: string
 }
 
 const supportArticles: SupportArticle[] = [
-  { title: 'Supported Source Documents', category: 'Guides', icon: FileText },
-  { title: 'How to Connect Juno & TaxDome', category: 'Integrations', icon: BookOpen },
-  { title: 'Getting Started with Preparer', category: 'Getting Started', icon: BookOpen },
-  { title: 'Juno <> CCH Axcess Export Demo', category: 'Integrations', icon: BookOpen },
+  { title: 'Supported Source Documents', category: 'Guides', icon: 'document' },
+  { title: 'How to Connect Juno & TaxDome', category: 'Integrations', icon: 'book' },
+  { title: 'Getting Started with Preparer', category: 'Getting Started', icon: 'book' },
+  { title: 'Juno <> CCH Axcess Export Demo', category: 'Integrations', icon: 'book' },
 ]
 
 export default function FloatingAIButton() {
@@ -127,7 +111,7 @@ export default function FloatingAIButton() {
       {/* Search */}
       <div className="px-6 pb-4">
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+          <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
           <input
             type="text"
             value={searchQuery}
@@ -151,7 +135,7 @@ export default function FloatingAIButton() {
               className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-white border border-dark-100 hover:border-juno-green/40 hover:bg-juno-light-green/20 transition-all text-left group"
             >
               <div className="w-9 h-9 rounded-lg bg-juno-light-green flex items-center justify-center shrink-0 group-hover:bg-juno-green/30 transition-colors">
-                <article.icon className="w-4.5 h-4.5 text-juno-dark-green" />
+                <Icon name={article.icon} className="w-4.5 h-4.5 text-juno-dark-green" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-dark-900 truncate">
@@ -159,7 +143,7 @@ export default function FloatingAIButton() {
                 </p>
                 <p className="text-xs text-dark-400 mt-0.5">{article.category}</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green transition-colors shrink-0" />
+              <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green shrink-0" />
             </button>
           ))}
         </div>
@@ -167,13 +151,12 @@ export default function FloatingAIButton() {
         {/* Contact Support */}
         <button className="w-full flex items-center gap-3 p-3.5 mt-4 rounded-xl border-2 border-dashed border-dark-200 hover:border-juno-green/40 hover:bg-juno-light-green/20 transition-all text-left group">
           <div className="w-9 h-9 rounded-lg bg-dark-100 flex items-center justify-center shrink-0 group-hover:bg-juno-light-green transition-colors">
-            <Headphones className="w-4.5 h-4.5 text-dark-500 group-hover:text-juno-dark-green transition-colors" />
+            <Icon name="support" className="w-4.5 h-4.5 text-dark-500 group-hover:text-juno-dark-green" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-dark-900">Contact support</p>
             <p className="text-xs text-dark-400 mt-0.5">Talk to our team</p>
-          </div>
-          <ExternalLink className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green transition-colors shrink-0" />
+          </div>                      <Icon name="link" className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green shrink-0" />
         </button>
       </div>
     </div>
@@ -189,7 +172,7 @@ export default function FloatingAIButton() {
       <div className="flex-1 overflow-y-auto px-6 pb-4">
         {messages.length === 0 ? (
           <div className="text-center py-12">
-            <MessageSquare className="w-10 h-10 text-dark-300 mx-auto mb-3" />
+            <Icon name="chat" className="w-10 h-10 text-dark-300 mx-auto mb-3" />
             <p className="text-sm text-dark-400">No messages yet. Ask a question to get started.</p>
           </div>
         ) : (
@@ -208,7 +191,7 @@ export default function FloatingAIButton() {
                     <span className="text-white text-xs font-semibold">A</span>
                   </div>
                   <p className="text-sm text-dark-700 truncate flex-1">{msg.content}</p>
-                  <ChevronRight className="w-3.5 h-3.5 text-dark-300 shrink-0" />
+                  <Icon name="forward" className="w-3.5 h-3.5 text-dark-300 shrink-0" />
                 </button>
               ))}
           </div>
@@ -226,10 +209,10 @@ export default function FloatingAIButton() {
           onClick={() => setView('home')}
           className="p-1.5 text-dark-500 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-all"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <Icon name="back" className="w-4 h-4" />
         </button>
         <div className="w-8 h-8 rounded-full bg-juno-light-green flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-juno-dark-green" />
+          <Icon name="star" className="w-4 h-4 text-juno-dark-green" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-dark-900">Juno AI</h3>
@@ -241,7 +224,7 @@ export default function FloatingAIButton() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <Bot className="w-10 h-10 text-juno-dark-green/30 mx-auto mb-3" />
+            <Icon name="chat" className="w-10 h-10 text-juno-dark-green/30 mx-auto mb-3" />
             <p className="text-sm text-dark-500">
               Ask a question about your clients, returns, or team.
             </p>
@@ -268,7 +251,7 @@ export default function FloatingAIButton() {
           <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
             {msg.role === 'assistant' && (
               <div className="w-7 h-7 rounded-full bg-juno-light-green flex items-center justify-center shrink-0 mt-0.5">
-                <Sparkles className="w-3.5 h-3.5 text-juno-dark-green" />
+                <Icon name="star" className="w-3.5 h-3.5 text-juno-dark-green" />
               </div>
             )}
             <div
@@ -306,7 +289,7 @@ export default function FloatingAIButton() {
               <Sparkles className="w-3.5 h-3.5 text-juno-dark-green" />
             </div>
             <div className="flex items-center gap-2 text-sm text-dark-400">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Icon name="refresh" className="w-4 h-4 animate-spin text-dark-400" />
               Thinking...
             </div>
           </div>
@@ -338,7 +321,7 @@ export default function FloatingAIButton() {
             disabled={!input.trim() || loading}
             className="w-10 h-10 bg-juno-dark-green hover:bg-juno-mid-green disabled:bg-dark-200 text-white rounded-xl flex items-center justify-center transition-all disabled:cursor-not-allowed shrink-0"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {loading ? <Icon name="refresh" className="w-4 h-4 animate-spin text-white" /> : <Icon name="send" className="w-4 h-4" />}
           </button>
         </form>
       </div>
@@ -357,10 +340,10 @@ export default function FloatingAIButton() {
         aria-label="Juno Support"
       >
         {open ? (
-          <X className="w-6 h-6" />
+          <Icon name="cancel" className="w-6 h-6" />
         ) : (
           <div className="relative">
-            <Bot className="w-6 h-6" />
+            <Icon name="chat" className="w-6 h-6" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-juno-green rounded-full animate-pulse" />
           </div>
         )}
@@ -373,7 +356,7 @@ export default function FloatingAIButton() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-dark-100 bg-dark-50 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-juno-dark-green rounded-full flex items-center justify-center">
-                <Bot className="w-3.5 h-3.5 text-white" />
+                <Icon name="chat" className="w-3.5 h-3.5 text-white" />
               </div>
               <span className="text-sm font-semibold text-dark-900">Juno Support</span>
             </div>
@@ -381,7 +364,7 @@ export default function FloatingAIButton() {
               onClick={() => setOpen(false)}
               className="p-1 text-dark-400 hover:text-dark-900 hover:bg-dark-100 rounded-lg transition-all"
             >
-              <X className="w-4 h-4" />
+              <Icon name="cancel" className="w-4 h-4" />
             </button>
           </div>
 
@@ -398,7 +381,7 @@ export default function FloatingAIButton() {
                 view === 'home' ? 'text-juno-dark-green' : 'text-dark-400 hover:text-dark-600'
               }`}
             >
-              <Home className={`w-5 h-5 ${view === 'home' ? 'text-juno-dark-green' : ''}`} />
+              <Icon name="home" className={`w-5 h-5 ${view === 'home' ? 'text-juno-dark-green' : ''}`} />
               <span>Home</span>
             </button>
             <button
@@ -407,9 +390,7 @@ export default function FloatingAIButton() {
                 view === 'messages' ? 'text-juno-dark-green' : 'text-dark-400 hover:text-dark-600'
               }`}
             >
-              <MessageSquare
-                className={`w-5 h-5 ${view === 'messages' ? 'text-juno-dark-green' : ''}`}
-              />
+              <Icon name="chat" className={`w-5 h-5 ${view === 'messages' ? 'text-juno-dark-green' : ''}`} />
               <span>Messages</span>
               {messages.length > 0 && (
                 <span className="absolute top-1 right-1/4 w-4 h-4 bg-juno-green text-juno-dark-green text-[9px] font-bold rounded-full flex items-center justify-center">
@@ -423,9 +404,7 @@ export default function FloatingAIButton() {
                 view === 'chat' ? 'text-juno-dark-green' : 'text-dark-400 hover:text-dark-600'
               }`}
             >
-              <HelpCircle
-                className={`w-5 h-5 ${view === 'chat' ? 'text-juno-dark-green' : ''}`}
-              />
+              <Icon name="help" className={`w-5 h-5 ${view === 'chat' ? 'text-juno-dark-green' : ''}`} />
               <span>Help</span>
             </button>
           </div>

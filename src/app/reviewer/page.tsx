@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Clock, Play } from 'lucide-react'
+import Icon from '@/components/Icon'
 
 const reviews = [
   {
@@ -46,7 +46,7 @@ export default function ReviewerPage() {
             Reviewer
           </div>
           <div className="flex items-center gap-1.5 text-sm text-dark-500">
-            <Clock className="w-4 h-4" />
+            <Icon name="clock" className="w-4 h-4" />
             <span>0/5 Free Preparations started.</span>
           </div>
           <div className="text-sm text-dark-500">6d 5h Left in Your Trial</div>
@@ -62,7 +62,7 @@ export default function ReviewerPage() {
 
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2 p-4 border-b border-dark-100">
-          <Search className="w-4 h-4 text-dark-400" />
+          <Icon name="search" className="w-4 h-4 text-dark-400" />
           <input
             type="text"
             placeholder="Search Client Name"
@@ -112,7 +112,7 @@ export default function ReviewerPage() {
                   </td>
                   <td className="px-6 py-4">
                     <button className="inline-flex items-center gap-1.5 text-sm font-medium text-juno-dark-green hover:underline">
-                      <Play className="w-3.5 h-3.5" />
+                      <Icon name="play" className="w-3.5 h-3.5" />
                       View Tutorial
                     </button>
                   </td>

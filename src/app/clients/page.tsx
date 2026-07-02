@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Clock, Plus, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import Icon from '@/components/Icon'
 import Modal from '@/components/Modal'
 
 interface Client {
@@ -124,7 +124,7 @@ export default function ClientsPage() {
             Clients
           </div>
           <div className="flex items-center gap-1.5 text-sm text-dark-500">
-            <Clock className="w-4 h-4" />
+            <Icon name="clock" className="w-4 h-4" />
             <span>0/5 Free Preparations started.</span>
           </div>
           <div className="text-sm text-dark-500">4d 12h Left in Your Trial</div>
@@ -145,7 +145,7 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-display font-bold text-dark-900">Clients</h1>
         <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
-          <Plus className="w-4 h-4" />
+          <Icon name="plus" className="w-4 h-4" />
           Add Client
         </button>
       </div>
@@ -159,13 +159,13 @@ export default function ClientsPage() {
       {/* Search + Table */}
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2 p-4 border-b border-dark-100">
-          <Search className="w-4 h-4 text-dark-400 shrink-0" />
+          <Icon name="search" className="w-4 h-4 text-dark-400 shrink-0" />
           <input type="text" placeholder="Search List" value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 bg-transparent border-none outline-none text-sm text-dark-900 placeholder-dark-400" aria-label="Search clients" />
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-5 h-5 text-dark-400 animate-spin" />
+            <Icon name="refresh" className="w-5 h-5 text-dark-400 animate-spin" />
           </div>
         ) : (
           <>
@@ -209,8 +209,8 @@ export default function ClientsPage() {
             <div className="flex items-center justify-between px-6 py-3 border-t border-dark-100 bg-dark-50">
               <p className="text-sm text-dark-500">1 of 1</p>
               <div className="flex items-center gap-2">
-                <button className="p-1 text-dark-400 hover:text-dark-900 disabled:opacity-30 transition-colors" disabled><ChevronLeft className="w-4 h-4" /></button>
-                <button className="p-1 text-dark-400 hover:text-dark-900 disabled:opacity-30 transition-colors" disabled><ChevronRight className="w-4 h-4" /></button>
+                <button className="p-1 text-dark-400 hover:text-dark-900 disabled:opacity-30 transition-colors" disabled><Icon name="back" className="w-4 h-4" /></button>
+                <button className="p-1 text-dark-400 hover:text-dark-900 disabled:opacity-30 transition-colors" disabled><Icon name="forward" className="w-4 h-4" /></button>
               </div>
             </div>
           </>
@@ -262,7 +262,7 @@ export default function ClientsPage() {
           <div className="pt-3 flex gap-3">
             <button onClick={() => { setShowAddModal(false); setFormError('') }} className="btn btn-secondary flex-1">Cancel</button>
             <button onClick={handleAddClient} disabled={saving} className="btn btn-primary flex-1">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Add Client'}
+              {saving ? <><Icon name="refresh" className="w-4 h-4 animate-spin" /> Saving...</> : 'Add Client'}
             </button>
           </div>
         </div>

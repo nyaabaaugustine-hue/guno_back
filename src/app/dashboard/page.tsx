@@ -3,12 +3,8 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
-import {
-  DollarSign, Users, FileText, TrendingUp, ArrowUpRight,
-  Clock, CheckCircle2, AlertCircle, Plus, Eye, Activity,
-  Calendar, ChevronRight, BarChart3
-} from 'lucide-react'
 import Link from 'next/link'
+import Icon from '@/components/Icon'
 
 // ─── Animated Counter ───────────────────────────────────────────
 function AnimatedNumber({ value, suffix = '', duration = 1500 }: { value: number; suffix?: string; duration?: number }) {
@@ -77,54 +73,67 @@ function DonutChart({ segments }: {
   )
 }
 
-// ─── Data ───────────────────────────────────────────────────────
-const stats = [
-  { label: 'Total Returns', value: 147, change: '+12%', trend: 'up' as const, icon: FileText, color: 'text-blue-600 bg-blue-100', chartColor: '#3B82F6' },
-  { label: 'Active Clients', value: 89, change: '+8%', trend: 'up' as const, icon: Users, color: 'text-juno-dark-green bg-juno-light-green', chartColor: '#013A2F' },
-  { label: 'Avg. Processing Time', value: 4.2, change: '-32%', trend: 'down' as const, icon: Clock, color: 'text-purple-600 bg-purple-100', chartColor: '#7C3AED' },
-  { label: 'Revenue (MTD)', value: 7203, change: '+18%', trend: 'up' as const, icon: DollarSign, color: 'text-emerald-600 bg-emerald-100', chartColor: '#059669', isCurrency: true },
-]
+// ─── Dashboard data type ─────────────────────────────────────────
+interface DashboardData {
+  stats: {
+    label: string
+    value: number
+    change: string
+    trend: 'up' | 'down'
+    isCurrency?: boolean
+  }[]
+  returnsByStatus: { label: string; value: number; color: string; count?: string }[]
+  recentReturns: { client: string; form: string; status: string; updated: string; amount: string }[]
+  activities: { action: string; client: string; initials: string; form: string; user: string; time: string; type: string }[]
+  deadlines: { task: string; date: string; priority: string; daysLeft: number }[]
+}
 
-const activities = [
-  { action: 'Return completed', client: 'Acme Corp', initials: 'AC', form: '1120', user: 'Jane D.', time: '2h ago', type: 'completed' as const },
-  { action: 'Documents uploaded', client: 'Bob Smith', initials: 'BS', form: '1040', user: 'Bob S.', time: '3h ago', type: 'upload' as const },
-  { action: 'Flagged for review', client: 'TechStart Inc', initials: 'TI', form: '1065', user: 'Mike R.', time: '5h ago', type: 'alert' as const },
-  { action: 'New return created', client: 'Sarah Johnson', initials: 'SJ', form: '1040', user: 'Jane D.', time: '1d ago', type: 'created' as const },
-  { action: 'Review completed', client: 'Global Partners', initials: 'GP', form: '1120-S', user: 'Jane D.', time: '1d ago', type: 'completed' as const },
-]
+// ─── Icon picker for stats ──────────────────────────────────────
+const iconColorMap: Record<string, string> = {
+  'Total Returns': 'text-blue-600 bg-blue-100',
+  'Active Clients': 'text-juno-dark-green bg-juno-light-green',
+  'Documents': 'text-purple-600 bg-purple-100',
+  'Team Members': 'text-emerald-600 bg-emerald-100',
+  'Avg. Processing Time': 'text-purple-600 bg-purple-100',
+  'Revenue (MTD)': 'text-emerald-600 bg-emerald-100',
+}
 
-const deadlines = [
-  { task: 'Q2 Estimated Tax Payment', date: 'Jun 15, 2026', priority: 'high' as const, daysLeft: 13 },
-  { task: 'Extension Filings Due', date: 'Oct 15, 2026', priority: 'medium' as const, daysLeft: 105 },
-  { task: 'Payroll Tax Return', date: 'Jul 31, 2026', priority: 'low' as const, daysLeft: 29 },
-]
-
-const returnsByStatus = [
-  { label: 'Completed', value: 122, color: '#013A2F', count: '122' },
-  { label: 'Draft', value: 12, color: '#94A3B8', count: '12' },
-  { label: 'In Review', value: 8, color: '#3B82F6', count: '8' },
-  { label: 'Processing', value: 5, color: '#F59E0B', count: '5' },
-]
-
-const recentReturns = [
-  { client: 'Acme Corp', form: '1120', status: 'In Review', updated: '2h ago', amount: '$24,500' },
-  { client: 'Bob Smith', form: '1040', status: 'Completed', updated: '5h ago', amount: '$8,200' },
-  { client: 'TechStart Inc', form: '1065', status: 'Processing', updated: '1d ago', amount: '$67,800' },
-  { client: 'Sarah Johnson', form: '1040', status: 'Draft', updated: '2d ago', amount: '$12,400' },
-  { client: 'Global Partners', form: '1120-S', status: 'In Review', updated: '2d ago', amount: '$156,000' },
-]
+const iconNameMap: Record<string, string> = {
+  'Total Returns': 'document',
+  'Active Clients': 'teamwork',
+  'Documents': 'document',
+  'Team Members': 'teamwork',
+  'Avg. Processing Time': 'clock',
+  'Revenue (MTD)': 'money',
+}
 
 // ─── Component ──────────────────────────────────────────────────
 export default function DashboardPage() {
   const { data: session, status: authStatus } = useSession()
   const router = useRouter()
   const [greeting, setGreeting] = useState('')
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const hour = new Date().getHours()
     if (hour < 12) setGreeting('Good morning')
     else if (hour < 18) setGreeting('Good afternoon')
     else setGreeting('Good evening')
+  }, [])
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const res = await fetch('/api/dashboard/summary')
+        if (res.ok) {
+          setData(await res.json())
+        }
+      } catch {} finally {
+        setLoading(false)
+      }
+    }
+    loadDashboard()
   }, [])
 
   useEffect(() => {
@@ -147,6 +156,24 @@ export default function DashboardPage() {
   const userName = session.user?.name || 'User'
   const firstName = userName.split(' ')[0]
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-juno-dark-green border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-dark-500">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Use API data or fall back to empty defaults
+  const stats = data?.stats ?? []
+  const activities = data?.activities ?? []
+  const deadlines = data?.deadlines ?? []
+  const returnsByStatus = data?.returnsByStatus ?? []
+  const recentReturns = data?.recentReturns ?? []
+
   return (
     <div className="space-y-8">
       {/* ── Welcome Header ── */}
@@ -164,11 +191,11 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/tips-limits" className="btn btn-ghost text-sm">
-              <Calendar className="w-4 h-4" />
+              <Icon name="calendar" className="w-4 h-4" />
               <span className="hidden sm:inline">View Calendar</span>
             </Link>
             <Link href="/preparer" className="btn btn-primary shadow-lg shadow-juno-dark-green/20">
-              <Plus className="w-4 h-4" />
+              <Icon name="plus" className="w-4 h-4" />
               New Return
             </Link>
           </div>
@@ -188,24 +215,24 @@ export default function DashboardPage() {
 
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.color} ring-4 ring-white shadow-sm`}>
-                  <s.icon className="w-5.5 h-5.5" />
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${iconColorMap[s.label] || 'text-blue-600 bg-blue-100'} ring-4 ring-white shadow-sm`}>
+                  <Icon name={iconNameMap[s.label] || 'document'} className="w-5.5 h-5.5" />
                 </div>
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
                   s.trend === 'up' ? 'text-emerald-700 bg-emerald-50' : 'text-purple-700 bg-purple-50'
                 }`}>
                   {s.change}
-                  <ArrowUpRight className={`w-3 h-3 ${s.trend === 'down' ? 'rotate-180' : ''}`} />
+                  <Icon name="link" className={`w-3 h-3 ${s.trend === 'down' ? 'rotate-180' : ''}`} />
                 </span>
               </div>
 
               {s.label === 'Avg. Processing Time' ? (
                 <p className="text-2xl font-bold text-dark-900 tabular-nums">
-                  <AnimatedNumber value={4} />.<AnimatedNumber value={2} duration={1200} />h
+                  <AnimatedNumber value={Math.floor(s.value)} />.<AnimatedNumber value={Math.round((s.value % 1) * 10)} duration={1200} />h
                 </p>
-              ) : s.label === 'Revenue (MTD)' ? (
+              ) : s.isCurrency || s.label === 'Revenue (MTD)' ? (
                 <p className="text-2xl font-bold text-dark-900 tabular-nums">
-                  $<AnimatedNumber value={7203} />
+                  $<AnimatedNumber value={s.value} />
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-dark-900 tabular-nums">
@@ -225,7 +252,7 @@ export default function DashboardPage() {
         <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold text-dark-900">Returns by Status</h2>
-            <BarChart3 className="w-4 h-4 text-dark-400" />
+            <Icon name="statistics" className="w-4 h-4 text-dark-400" />
           </div>
           <div className="flex items-center gap-6">
             {/* Donut */}
@@ -257,7 +284,7 @@ export default function DashboardPage() {
         <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold text-dark-900">Upcoming Deadlines</h2>
-            <Calendar className="w-4 h-4 text-dark-400" />
+            <Icon name="calendar" className="w-4 h-4 text-dark-400" />
           </div>
           <div className="space-y-4">
             {deadlines.map((d) => (
@@ -288,13 +315,13 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
               </div>
             ))}
           </div>
           <Link href="/tips-limits" className="inline-flex items-center gap-1 text-xs font-medium text-juno-dark-green hover:text-juno-mid-green transition-colors mt-4 group">
             View all deadlines
-            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            <Icon name="forward" className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
@@ -302,48 +329,48 @@ export default function DashboardPage() {
         <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold text-dark-900">Quick Actions</h2>
-            <Activity className="w-4 h-4 text-dark-400" />
+            <Icon name="statistics" className="w-4 h-4 text-dark-400" />
           </div>
           <div className="space-y-2">
             <Link href="/preparer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-juno-light-green/30 transition-all group">
               <div className="w-10 h-10 bg-juno-light-green rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-0 transition-all duration-300">
-                <Plus className="w-4.5 h-4.5 text-juno-dark-green" />
+                <Icon name="plus" className="w-4.5 h-4.5 text-juno-dark-green" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green transition-colors">New Tax Return</p>
                 <p className="text-xs text-dark-500">Start a new preparation</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all" />
+              <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all" />
             </Link>
             <Link href="/clients" className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 transition-all group">
               <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                <Users className="w-4.5 h-4.5 text-blue-600" />
+                <Icon name="teamwork" className="w-4.5 h-4.5 text-blue-600" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-dark-900 group-hover:text-blue-600 transition-colors">Add Client</p>
                 <p className="text-xs text-dark-500">Add a new client to your roster</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+              <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
             </Link>
             <Link href="/assistant" className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 transition-all group">
               <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                <Eye className="w-4.5 h-4.5 text-purple-600" />
+                <Icon name="visible" className="w-4.5 h-4.5 text-purple-600" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-dark-900 group-hover:text-purple-600 transition-colors">Ask Assistant</p>
                 <p className="text-xs text-dark-500">Get tax answers instantly</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+              <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
             </Link>
             <Link href="/advisor" className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50 transition-all group">
               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                <TrendingUp className="w-4.5 h-4.5 text-amber-600" />
+                <Icon name="statistics" className="w-4.5 h-4.5 text-amber-600" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-dark-900 group-hover:text-amber-600 transition-colors">Tax Planning</p>
                 <p className="text-xs text-dark-500">Run advisory scenarios</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-dark-300 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+              <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
             </Link>
           </div>
         </div>
@@ -357,8 +384,7 @@ export default function DashboardPage() {
             <span className="text-xs text-dark-400 bg-dark-50 px-2 py-0.5 rounded-full font-medium">{recentReturns.length} active</span>
           </div>
           <Link href="/returns" className="text-sm font-medium text-juno-dark-green hover:text-juno-mid-green transition-colors flex items-center gap-1 group">
-            View all
-            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            View all              <Icon name="forward" className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
         <div className="overflow-x-auto">
@@ -420,8 +446,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-semibold text-dark-900">Recent Activity</h2>
           <Link href="/returns" className="text-sm font-medium text-juno-dark-green hover:text-juno-mid-green transition-colors flex items-center gap-1 group">
-            View all
-            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            View all              <Icon name="forward" className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
         <div className="relative">
@@ -437,10 +462,10 @@ export default function DashboardPage() {
                   a.type === 'upload' ? 'bg-blue-50' :
                   'bg-dark-50'
                 }`}>
-                  {a.type === 'completed' ? <CheckCircle2 className="w-4 h-4 text-juno-dark-green" /> :
-                   a.type === 'alert' ? <AlertCircle className="w-4 h-4 text-red-500" /> :
-                   a.type === 'upload' ? <ArrowUpRight className="w-4 h-4 text-blue-500" /> :
-                   <Plus className="w-4 h-4 text-dark-400" />}
+                  {a.type === 'completed' ? <Icon name="check" className="w-4 h-4 text-juno-dark-green" /> :
+                   a.type === 'alert' ? <Icon name="error" className="w-4 h-4 text-red-500" /> :
+                   a.type === 'upload' ? <Icon name="link" className="w-4 h-4 text-blue-500" /> :
+                   <Icon name="plus" className="w-4 h-4 text-dark-400" />}
                 </div>
                 {/* Content */}
                 <div className="flex-1 min-w-0 pt-1.5">

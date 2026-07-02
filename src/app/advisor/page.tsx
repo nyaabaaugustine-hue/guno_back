@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock, Sparkles, Send, Users, Paperclip, MessageSquare, ChevronRight } from 'lucide-react'
+import Icon from '@/components/Icon'
 
 const agentPrompts = [
   {
@@ -34,24 +34,25 @@ export default function AdvisorPage() {
     setLoading(true)
     setResponse(null)
 
-    setTimeout(() => {
-      setResponse(`## Analysis
+    try {
+      const res = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      })
 
-Based on your request: "${query}"
+      const data = await res.json()
 
-### Key Findings
-1. Your client's current situation presents several optimization opportunities
-2. Recommended strategies include reviewing entity structure and maximizing available deductions
-3. Consider timing of income and expenses across tax years
-
-### Recommended Next Steps
-- Schedule a strategy session to review these findings
-- Gather additional documentation for a comprehensive analysis
-- Implement recommended changes before the end of the tax year
-
-Would you like me to dive deeper into any specific area?`)
+      if (data.error) {
+        setResponse(`❌ ${data.error}`)
+      } else {
+        setResponse(data.response)
+      }
+    } catch (err) {
+      setResponse('❌ Sorry, I encountered an error. Please check your connection and try again.')
+    } finally {
       setLoading(false)
-    }, 2500)
+    }
   }
 
   return (
@@ -64,7 +65,7 @@ Would you like me to dive deeper into any specific area?`)
             Advisor
           </div>
           <div className="flex items-center gap-1.5 text-sm text-dark-500">
-            <Clock className="w-4 h-4" />
+            <Icon name="clock" className="w-4 h-4" />
             <span>0/5 Free Preparations started.</span>
           </div>
           <div className="text-sm text-dark-500">4d 12h Left in Your Trial</div>
@@ -100,7 +101,7 @@ Would you like me to dive deeper into any specific area?`)
                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
             ) : (
-              <Send className="w-4 h-4" />
+              <Icon name="send" className="w-4 h-4" />
             )}
           </button>
         </form>
@@ -112,7 +113,7 @@ Would you like me to dive deeper into any specific area?`)
           <div className="flex items-start justify-between">
             <div>
               <div className="w-9 h-9 bg-juno-light-green rounded-lg flex items-center justify-center mb-3">
-                <Users className="w-5 h-5 text-juno-dark-green" />
+                <Icon name="teamwork" className="w-5 h-5 text-juno-dark-green" />
               </div>
               <h3 className="text-sm font-semibold text-dark-900 mb-1">Select Client</h3>
               <p className="text-xs text-dark-400">Choose your client</p>
@@ -125,7 +126,7 @@ Would you like me to dive deeper into any specific area?`)
           <div className="flex items-start justify-between">
             <div>
               <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                <Paperclip className="w-5 h-5 text-blue-600" />
+                <Icon name="attach" className="w-5 h-5 text-blue-600" />
               </div>
               <h3 className="text-sm font-semibold text-dark-900 mb-1">Attach Files</h3>
               <p className="text-xs text-dark-400">Drag or click to upload</p>
@@ -138,7 +139,7 @@ Would you like me to dive deeper into any specific area?`)
           <div className="flex items-start justify-between">
             <div>
               <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
-                <MessageSquare className="w-5 h-5 text-purple-600" />
+                <Icon name="chat" className="w-5 h-5 text-purple-600" />
               </div>
               <h3 className="text-sm font-semibold text-dark-900 mb-1">Chat History</h3>
               <p className="text-xs text-dark-400">View all recent conversations</p>
@@ -192,8 +193,7 @@ Would you like me to dive deeper into any specific area?`)
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-base font-semibold text-dark-900">Prompt Library</h2>
           <button className="text-xs font-medium text-juno-dark-green hover:underline flex items-center gap-1">
-            Explore Popular Prompts
-            <ChevronRight className="w-3 h-3" />
+            Explore Popular Prompts              <Icon name="forward" className="w-3 h-3" />
           </button>
         </div>
       </div>
@@ -205,7 +205,7 @@ Would you like me to dive deeper into any specific area?`)
             <h3 className="text-sm font-semibold text-dark-900 mb-1">{section.category}</h3>
             <p className="text-xs text-dark-500 leading-relaxed">{section.description}</p>
             <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Icon name="clock" className="w-3 h-3" />
               {section.note}
             </p>
           </div>
@@ -223,7 +223,7 @@ Would you like me to dive deeper into any specific area?`)
                     <p className="text-sm font-semibold text-dark-900 mb-1.5">{agent.name}</p>
                     <p className="text-xs text-dark-500 leading-relaxed line-clamp-2">{agent.prompt}</p>
                   </div>
-                  <Sparkles className="w-4 h-4 text-juno-dark-green/40 group-hover:text-juno-dark-green transition-colors shrink-0 mt-0.5" />
+                  <Icon name="star" className="w-4 h-4 text-juno-dark-green/40 group-hover:text-juno-dark-green shrink-0 mt-0.5" />
                 </div>
               </button>
             ))}

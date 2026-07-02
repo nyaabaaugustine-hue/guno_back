@@ -75,6 +75,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAuthPage = pathname.startsWith('/auth/')
+  const isProtectedPage = pathname.startsWith('/protected/')
 
   return (
     <SessionProvider>
@@ -82,6 +83,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <body>
           {isAuthPage ? (
             <AuthLayout>{children}</AuthLayout>
+          ) : isProtectedPage ? (
+            children
           ) : (
             <AppShell>{children}</AppShell>
           )}

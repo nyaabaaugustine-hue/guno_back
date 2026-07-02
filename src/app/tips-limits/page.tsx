@@ -1,28 +1,28 @@
 'use client'
 
-import { Info, CheckCircle, TrendingUp, Users, FileText } from 'lucide-react'
+import Icon from '@/components/Icon'
 
 const tips = [
   {
-    icon: TrendingUp,
+    icon: 'statistics',
     title: 'Start with your easiest returns',
     description: 'Begin by giving Juno preparations that are representative of your typical workload. Save your most complex returns for after you\'ve seen Juno handle the standard stuff.',
     color: 'text-blue-600 bg-blue-100',
   },
   {
-    icon: FileText,
+    icon: 'document',
     title: 'Upload clear source documents',
     description: 'For best results, upload PDF versions of source documents when available. Juno handles photos too, but clear scans give the highest extraction accuracy.',
     color: 'text-juno-dark-green bg-juno-light-green',
   },
   {
-    icon: Users,
+    icon: 'teamwork',
     title: 'Involve your team early',
     description: 'Have your preparers and reviewers both test Juno during the trial period. Each role has different needs, and we want to make sure the workflow works for everyone.',
     color: 'text-purple-600 bg-purple-100',
   },
   {
-    icon: CheckCircle,
+    icon: 'check',
     title: 'Review every extraction',
     description: 'Every data point Juno extracts links back to the source document. Click any value to verify it against the original — transparency is built into every step.',
     color: 'text-amber-600 bg-amber-100',
@@ -82,8 +82,7 @@ export default function TipsLimitsPage() {
           })}
         </div>
 
-        <div className="mt-4 flex items-center gap-2 text-xs text-dark-400">
-          <Info className="w-3 h-3" />
+        <div className="mt-4 flex items-center gap-2 text-xs text-dark-400">              <Icon name="info" className="w-3 h-3" />
           <span>Limits reset when you upgrade to a paid plan. 4d 12h remaining in your trial.</span>
         </div>
       </div>
@@ -95,7 +94,7 @@ export default function TipsLimitsPage() {
           <div key={tip.title} className="card p-5 hover:shadow-md transition-all">
             <div className="flex gap-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tip.color}`}>
-                <tip.icon className="w-5 h-5" />
+                <Icon name={tip.icon} className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-dark-900 mb-1">{tip.title}</h3>

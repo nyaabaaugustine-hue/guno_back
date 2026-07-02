@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock, Sparkles, Send, ArrowRight } from 'lucide-react'
+import Icon from '@/components/Icon'
 
 const examplePrompts = [
   {
@@ -43,19 +43,25 @@ export default function AssistantPage() {
     setLoading(true)
     setResponse(null)
 
-    // Simulate AI response
-    setTimeout(() => {
-      setResponse(`Here's what I found about "${query}":
+    try {
+      const res = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      })
 
-Based on current tax regulations and IRS guidance, here are the key points you need to know:
+      const data = await res.json()
 
-1. The relevant tax code provisions apply based on the taxpayer's specific circumstances
-2. Eligibility requirements vary depending on filing status, income level, and other factors
-3. For the most accurate analysis, I recommend reviewing the specific client's situation
-
-Would you like me to dive deeper into any particular aspect of this?`)
+      if (data.error) {
+        setResponse(`❌ ${data.error}`)
+      } else {
+        setResponse(data.response)
+      }
+    } catch (err) {
+      setResponse('❌ Sorry, I encountered an error. Please check your connection and try again.')
+    } finally {
       setLoading(false)
-    }, 2000)
+    }
   }
 
   return (
@@ -68,7 +74,7 @@ Would you like me to dive deeper into any particular aspect of this?`)
             Assistant
           </div>
           <div className="flex items-center gap-1.5 text-sm text-dark-500">
-            <Clock className="w-4 h-4" />
+            <Icon name="clock" className="w-4 h-4" />
             <span>0/5 Free Preparations started.</span>
           </div>
           <div className="text-sm text-dark-500">4d 12h Left in Your Trial</div>
@@ -84,8 +90,7 @@ Would you like me to dive deeper into any particular aspect of this?`)
       {/* Main prompt input */}
       <div className="card p-6 mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 bg-juno-dark-green rounded-lg flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 bg-juno-dark-green rounded-lg flex items-center justify-center">                  <Icon name="star" className="w-4 h-4 text-white" />
           </div>
           <h2 className="text-base font-semibold text-dark-900">Ask Juno Assistant</h2>
         </div>
@@ -114,7 +119,7 @@ Would you like me to dive deeper into any particular aspect of this?`)
                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
             ) : (
-              <Send className="w-4 h-4" />
+              <Icon name="send" className="w-4 h-4" />
             )}
           </button>
         </form>
@@ -147,10 +152,10 @@ Would you like me to dive deeper into any particular aspect of this?`)
               </div>
               <div className="flex items-center gap-2 mt-4 pt-3 border-t border-dark-100">
                 <button
-                  onClick={() => { setResponse(null); setInput('Explain the qualified business income deduction') }}
+                  onClick={() => { setResponse(null); setInput('') }}
                   className="text-xs font-medium text-juno-dark-green hover:underline"
                 >
-                  Ask a follow-up →
+                  Ask another question →
                 </button>
               </div>
             </div>
@@ -178,7 +183,7 @@ Would you like me to dive deeper into any particular aspect of this?`)
                     {item.prompt}
                   </p>
                 </div>
-                <ArrowRight className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
+                <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
               </div>
             </button>
           ))}

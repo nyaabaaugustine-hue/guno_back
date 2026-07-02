@@ -1,7 +1,7 @@
 'use client'
 
-import { Bell, Search, Menu } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import Icon from '@/components/Icon'
 
 interface DashboardHeaderProps {
   onMenuClick: () => void
@@ -20,12 +20,11 @@ export default function DashboardHeader({ onMenuClick, collapsed }: DashboardHea
         collapsed ? 'left-16' : 'left-60'
       }`}
     >
-      <div className="flex items-center gap-4">
-        <button onClick={onMenuClick} className="p-2 text-dark-500 hover:text-dark-900 rounded-lg hover:bg-dark-50 transition-colors lg:hidden">
-          <Menu className="w-5 h-5" />
+      <div className="flex items-center gap-4">          <button onClick={onMenuClick} className="p-2 text-dark-500 hover:text-dark-900 rounded-lg hover:bg-dark-50 transition-colors lg:hidden">
+          <Icon name="menu" className="w-5 h-5" />
         </button>
         <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
           <input
             type="text"
             placeholder="Search..."
@@ -36,7 +35,7 @@ export default function DashboardHeader({ onMenuClick, collapsed }: DashboardHea
 
       <div className="flex items-center gap-3">
         <button className="relative p-2 text-dark-500 hover:text-dark-900 rounded-lg hover:bg-dark-50 transition-colors">
-          <Bell className="w-5 h-5" />
+          <Icon name="bell" className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
         <div className="flex items-center gap-3 pl-3 border-l border-dark-100">

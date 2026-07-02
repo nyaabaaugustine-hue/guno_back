@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock, Camera, Loader2, CheckCircle2 } from 'lucide-react'
+import Icon from '@/components/Icon'
 
 type SettingsTab = 'account' | 'password'
 
@@ -92,7 +92,7 @@ export default function SettingsPage() {
             Settings
           </div>
           <div className="flex items-center gap-1.5 text-sm text-dark-500">
-            <Clock className="w-4 h-4" />
+            <Icon name="clock" className="w-4 h-4" />
             <span>0/5 Free Preparations started.</span>
           </div>
           <div className="text-sm text-dark-500">4d 12h Left in Your Trial</div>
@@ -117,7 +117,7 @@ export default function SettingsPage() {
 
             {profileSuccess && (
               <div className="mb-4 flex items-center gap-2 text-sm text-juno-dark-green bg-juno-light-green px-4 py-2.5 rounded-lg">
-                <CheckCircle2 className="w-4 h-4" />
+                <Icon name="check" className="w-4 h-4" />
                 Profile updated successfully
               </div>
             )}
@@ -132,7 +132,7 @@ export default function SettingsPage() {
                   {firstName?.[0]}{lastName?.[0]}
                 </div>
                 <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full border border-dark-200 flex items-center justify-center cursor-pointer shadow-sm hover:bg-dark-50 transition-colors">
-                  <Camera className="w-3.5 h-3.5 text-dark-500" />
+                  <Icon name="camera" className="w-3.5 h-3.5 text-dark-500" />
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
                 </label>
               </div>
@@ -157,7 +157,7 @@ export default function SettingsPage() {
               </div>
               <div className="pt-2">
                 <button onClick={handleSaveProfile} disabled={savingProfile} className="btn btn-primary">
-                  {savingProfile ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
+                  {savingProfile ? <><Icon name="refresh" className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function SettingsPage() {
 
             {passwordSuccess && (
               <div className="mb-4 flex items-center gap-2 text-sm text-juno-dark-green bg-juno-light-green px-4 py-2.5 rounded-lg">
-                <CheckCircle2 className="w-4 h-4" />
+                <Icon name="check" className="w-4 h-4" />
                 Password updated successfully
               </div>
             )}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
               </div>
               <div className="pt-2">
                 <button onClick={handleUpdatePassword} disabled={savingPassword} className="btn btn-primary">
-                  {savingPassword ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</> : 'Update Password'}
+                  {savingPassword ? <><Icon name="refresh" className="w-4 h-4 animate-spin" /> Updating...</> : 'Update Password'}
                 </button>
               </div>
             </div>

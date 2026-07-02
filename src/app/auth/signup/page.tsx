@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Icon from '@/components/Icon'
 
 export default function SignUpPage() {
   const [name, setName] = useState('')
@@ -116,7 +117,7 @@ export default function SignUpPage() {
         </p>
 
         <p className="text-center mt-8">
-          <Link href="/" className="text-xs text-dark-400 hover:text-dark-600 transition-colors">← Back to marketing site</Link>
+          <Link href="/" className="text-xs text-dark-400 hover:text-dark-600 transition-colors"> <Icon name="back" className="w-3 h-3 inline" /> Back to marketing site</Link>
         </p>
       </div>
     </div>
