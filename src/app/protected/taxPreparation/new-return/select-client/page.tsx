@@ -146,7 +146,7 @@ export default function SelectClientPage() {
                       </div>
                       <p className="text-xs text-[#6B7280]">{c.email}</p>
                     </div>
-                    {c.returnCount > 0 && (
+                    {(c.returnCount ?? 0) > 0 && (
                       <span className="text-xs text-[#6B7280] bg-[#F7F9F8] px-2.5 py-1 rounded-full font-medium">{c.returnCount} return{c.returnCount !== 1 ? 's' : ''}</span>
                     )}
                     <div className={cn('w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all', isSelected ? 'border-[#1FAA6F] bg-[#1FAA6F]' : 'border-[#D1D5DB]')}>
