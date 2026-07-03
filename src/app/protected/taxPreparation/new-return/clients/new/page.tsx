@@ -1,18 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, ChevronDown, ChevronRight, Mail, Lock, User, Building2, Phone, MapPin, Loader2, CheckCircle2 } from 'lucide-react'
 
-export default function AddClientPage() {
+function AddClientForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const formCode = searchParams.get('form') || '1040'
   const [showExtra, setShowExtra] = useState(false)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [createdId, setCreatedId] = useState<string | null>(null)
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', ssnLast4: '',
     company: '', phone: '', address: '', city: '', state: '', zip: '',
@@ -37,7 +36,6 @@ export default function AddClientPage() {
       })
       if (res.ok) {
         const body = await res.json()
-        setCreatedId(body?.id || body?.client?.id || '')
         setDone(true)
         setTimeout(() => {
           const id = body?.id || body?.client?.id || ''
@@ -132,6 +130,18 @@ export default function AddClientPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function AddClientPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-lg mx-auto pt-20 text-center">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#6B7280]" />
+      </div>
+    }>
+      <AddClientForm />
+    </Suspense>
   )
 }
 

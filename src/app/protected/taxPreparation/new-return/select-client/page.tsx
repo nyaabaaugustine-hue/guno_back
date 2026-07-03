@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, Search, UserPlus, Users, ChevronRight, Loader2, CheckCircle2, Sparkles, Zap } from 'lucide-react'
@@ -10,7 +10,7 @@ interface Client {
   company?: string; returnCount?: number
 }
 
-export default function SelectClientPage() {
+function SelectClientForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const formCode = searchParams.get('form') || '1040'
@@ -173,5 +173,17 @@ export default function SelectClientPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function SelectClientPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-3xl mx-auto pt-20 text-center">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#6B7280]" />
+      </div>
+    }>
+      <SelectClientForm />
+    </Suspense>
   )
 }
