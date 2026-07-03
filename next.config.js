@@ -24,6 +24,9 @@ const nextConfig = {
   outputFileTracingExcludes: {
     '/*': ['./middleware.js'],
   },
+  turbopack: {
+    root: process.cwd(),
+  },
   async headers() {
     return [
       {
