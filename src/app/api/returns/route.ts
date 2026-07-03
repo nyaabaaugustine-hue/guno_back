@@ -3,7 +3,7 @@ import { db } from '@/db'
 import { taxReturns, clients, users } from '@/db/schema'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/auth'
-import { eq, desc, sql } from 'drizzle-orm'
+import { and, eq, desc, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { getFirmId, firmRequiredResponse, isDemoSession } from '@/lib/tenant'
 
@@ -83,6 +83,18 @@ export async function POST(request: Request) {
     const parsed = createReturnSchema.parse(body)
 
     const s = session as { user: { id: string } }
+
+    // Verify the target client actually belongs to this firm before
+    // attaching a return to it — prevents cross-tenant return creation.
+    const [client] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, parsed.clientId), eq(clients.firmId, firmId)))
+      .limit(1)
+
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
 
     const [ret] = await db.insert(taxReturns).values({
       clientId: parsed.clientId,

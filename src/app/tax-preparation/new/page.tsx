@@ -1,9 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/Icon'
 import Modal from '@/components/Modal'
+
+interface Client {
+  id: string
+  firstName: string
+  lastName: string
+  email?: string | null
+}
 
 interface ReturnType {
   form: string
@@ -53,17 +60,60 @@ export default function NewReturnPage() {
   const router = useRouter()
   const [selected, setSelected] = useState<ReturnType | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+  const [clientId, setClientId] = useState('')
+  const [clientsLoading, setClientsLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/clients')
+      .then((res) => res.json())
+      .then((data) => setClients(Array.isArray(data) ? data : []))
+      .catch(() => setError('Failed to load clients'))
+      .finally(() => setClientsLoading(false))
+  }, [])
 
   const handleSelect = (rt: ReturnType) => {
     setSelected(rt)
+    setError(null)
     setShowConfirm(true)
   }
 
-  const handleConfirm = () => {
-    setShowConfirm(false)
-    // In production, this would navigate to the actual tax preparation form
-    // For now, navigate back to the returns page
-    router.push('/returns')
+  const handleConfirm = async () => {
+    if (!selected) return
+    if (!clientId) {
+      setError('Please select a client')
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/returns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          formCode: selected.form,
+          taxYear: new Date().getFullYear(),
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Failed to create return')
+      }
+
+      const created = await res.json()
+      setShowConfirm(false)
+      router.push(`/returns/${created.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create return')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -148,18 +198,50 @@ export default function NewReturnPage() {
                 <p className="text-sm text-dark-500 mt-0.5">{selected.description}</p>
               </div>
             </div>
+
+            <div>
+              <label htmlFor="client-select" className="block text-sm font-medium text-dark-700 mb-1.5">
+                Client
+              </label>
+              <select
+                id="client-select"
+                value={clientId}
+                onChange={(e) => { setClientId(e.target.value); setError(null) }}
+                disabled={clientsLoading}
+                className="w-full rounded-xl border-2 border-dark-100 px-3 py-2.5 text-sm text-dark-900 focus:border-juno-accent focus:outline-none disabled:opacity-50"
+              >
+                <option value="">{clientsLoading ? 'Loading clients…' : 'Select a client'}</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}{c.email ? ` (${c.email})` : ''}
+                  </option>
+                ))}
+              </select>
+              {!clientsLoading && clients.length === 0 && (
+                <p className="text-xs text-dark-500 mt-1.5">
+                  No clients yet. Add a client first before starting a return.
+                </p>
+              )}
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
+
             <div className="flex items-center gap-3 justify-end">
               <button
                 onClick={() => setShowConfirm(false)}
                 className="btn btn-ghost"
+                disabled={submitting}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
                 className="btn btn-primary"
+                disabled={submitting || clientsLoading || !clientId}
               >
-                Start Preparing
+                {submitting ? 'Starting…' : 'Start Preparing'}
                 <Icon name="forward" className="w-4 h-4" />
               </button>
             </div>

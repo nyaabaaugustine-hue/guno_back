@@ -3,6 +3,14 @@ import { relations } from 'drizzle-orm'
 
 export const userRoleEnum = pgEnum('user_role', ['admin', 'firm_admin', 'preparer', 'reviewer', 'advisor', 'company_agent'])
 
+// ─── Billing ─────────────────────────────────────────────────────
+// Plan tiers are defined in code (src/lib/plans.ts) — this enum just
+// tags which tier a firm's subscription is on.
+export const planTierEnum = pgEnum('plan_tier', ['trial', 'starter', 'professional', 'enterprise'])
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'trialing', 'active', 'past_due', 'canceled', 'incomplete', 'unpaid',
+])
+
 export const firms = pgTable('firms', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -13,6 +21,39 @@ export const firms = pgTable('firms', {
   address: text('address'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// One row per firm. Source of truth for what a firm is allowed to do;
+// Stripe is the source of truth for payment state, this table mirrors
+// it for fast reads (no external API call on every request).
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  firmId: uuid('firm_id').references(() => firms.id, { onDelete: 'cascade' }).notNull().unique(),
+  tier: planTierEnum('tier').default('trial').notNull(),
+  status: subscriptionStatusEnum('status').default('trialing').notNull(),
+  seats: integer('seats').default(1).notNull(),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  stripePriceId: varchar('stripe_price_id', { length: 255 }),
+  currentPeriodEnd: timestamp('current_period_end'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false).notNull(),
+  trialEndsAt: timestamp('trial_ends_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// Append-only trail for sensitive actions (SSN access, exports, role
+// changes, billing changes). Never updated or deleted from the app.
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  firmId: uuid('firm_id').references(() => firms.id, { onDelete: 'cascade' }).notNull(),
+  actorId: uuid('actor_id').references(() => users.id),
+  action: varchar('action', { length: 100 }).notNull(),
+  targetType: varchar('target_type', { length: 100 }),
+  targetId: uuid('target_id'),
+  metadata: jsonb('metadata'),
+  ipAddress: varchar('ip_address', { length: 64 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
 export const users = pgTable('users', {
@@ -80,9 +121,13 @@ export const documents = pgTable('documents', {
   originalName: varchar('original_name', { length: 500 }).notNull(),
   fileSize: integer('file_size'),
   mimeType: varchar('mime_type', { length: 100 }),
+  // Key/path in the object store (S3/R2) where the actual file bytes
+  // live. Nothing but this key is ever stored in Postgres.
+  storageKey: text('storage_key'),
   documentType: documentTypeEnum('document_type').default('other'),
   status: documentStatusEnum('status').default('uploaded').notNull(),
   extractedData: jsonb('extracted_data'),
+  extractionError: text('extraction_error'),
   pages: integer('pages'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -102,12 +147,23 @@ export const taxReturns = pgTable('tax_returns', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-export const firmsRelations = relations(firms, ({ many }) => ({
+export const firmsRelations = relations(firms, ({ one, many }) => ({
   users: many(users),
   clients: many(clients),
   documents: many(documents),
   taxReturns: many(taxReturns),
   companies: many(companies),
+  subscription: one(subscriptions, { fields: [firms.id], references: [subscriptions.firmId] }),
+  auditLogs: many(auditLogs),
+}))
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  firm: one(firms, { fields: [subscriptions.firmId], references: [firms.id] }),
+}))
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  firm: one(firms, { fields: [auditLogs.firmId], references: [firms.id] }),
+  actor: one(users, { fields: [auditLogs.actorId], references: [users.id] }),
 }))
 
 export const usersRelations = relations(users, ({ one, many }) => ({
