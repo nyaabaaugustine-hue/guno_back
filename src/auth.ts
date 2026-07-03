@@ -65,8 +65,8 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Too many sign-in attempts. Please try again in a few minutes.')
         }
 
-        // Demo users only in development (never in production)
-        if (process.env.NODE_ENV !== 'production') {
+        // Demo users — enabled in dev by default, also in prod when DEMO_MODE=true
+        if (process.env.NODE_ENV !== 'production' || process.env.DEMO_MODE === 'true') {
           const demoUser = DEMO_USERS.find(
             (u) => u.email === credentials.email && u.password === credentials.password
           )
