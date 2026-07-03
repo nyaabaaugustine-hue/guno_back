@@ -38,21 +38,22 @@ const TIER_RANK: Record<PlanTier, number> = {
  * expired trial — safest default is "read-only until they subscribe."
  */
 export async function getFirmEntitlements(firmId: string): Promise<FirmEntitlements> {
-  const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.firmId, firmId)).limit(1)
+  const [subResult, seatsUsedResult, clientsUsedResult] = await Promise.all([
+    db.select().from(subscriptions).where(eq(subscriptions.firmId, firmId)).limit(1),
+    db
+      .select({ value: count() })
+      .from(users)
+      .where(and(eq(users.firmId, firmId), eq(users.active, true))),
+    db.select({ value: count() }).from(clients).where(eq(clients.firmId, firmId)),
+  ])
+
+  const [sub] = subResult
+  const seatsUsed = seatsUsedResult[0]?.value ?? 0
+  const clientsUsed = clientsUsedResult[0]?.value ?? 0
 
   const tier = (sub?.tier ?? 'trial') as PlanTier
   const status = sub?.status ?? 'canceled'
   const plan = getPlan(tier)
-
-  const [{ value: seatsUsed }] = await db
-    .select({ value: count() })
-    .from(users)
-    .where(and(eq(users.firmId, firmId), eq(users.active, true)))
-
-  const [{ value: clientsUsed }] = await db
-    .select({ value: count() })
-    .from(clients)
-    .where(eq(clients.firmId, firmId))
 
   const active = ACTIVE_SUBSCRIPTION_STATUSES.has(status)
 
