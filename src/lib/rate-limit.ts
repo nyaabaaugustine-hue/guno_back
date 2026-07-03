@@ -67,3 +67,20 @@ export function rateLimitByEmail(
 ): RateLimitResult {
   return rateLimitByKey(`email:${email.toLowerCase().trim()}`, limit, windowMs)
 }
+
+/**
+ * Rate limit with seconds-based window.
+ * Convenience wrapper for the AI query route and other server-side use.
+ */
+export function checkRateLimit(
+  key: string,
+  maxRequests: number,
+  windowSec: number
+): { allowed: boolean; remaining: number; resetIn: number } {
+  const result = rateLimitByKey(key, maxRequests, windowSec * 1000)
+  return {
+    allowed: result.allowed,
+    remaining: result.remaining,
+    resetIn: Math.max(0, Math.ceil((result.resetAt - Date.now()) / 1000)),
+  }
+}

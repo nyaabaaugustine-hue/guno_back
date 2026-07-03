@@ -194,10 +194,13 @@ export default function DashboardPage() {
               <Icon name="calendar" className="w-4 h-4" />
               <span className="hidden sm:inline">View Calendar</span>
             </Link>
-            <Link href="/preparer" className="btn btn-primary shadow-lg shadow-juno-dark-green/20">
+            <button
+              onClick={() => router.push('/preparer')}
+              className="btn btn-primary shadow-lg shadow-juno-dark-green/20"
+            >
               <Icon name="plus" className="w-4 h-4" />
-              New Return
-            </Link>
+              Start Tax Preparations
+            </button>
           </div>
         </div>
       </div>
@@ -332,13 +335,13 @@ export default function DashboardPage() {
             <Icon name="statistics" className="w-4 h-4 text-dark-400" />
           </div>
           <div className="space-y-2">
-            <Link href="/preparer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-juno-light-green/30 transition-all group">
+            <Link href="/tax-preparation" className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-juno-dark-green/5 to-juno-accent/5 border border-juno-dark-green/20 hover:from-juno-dark-green/10 hover:to-juno-accent/10 transition-all group">
               <div className="w-10 h-10 bg-juno-light-green rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-0 transition-all duration-300">
                 <Icon name="plus" className="w-4.5 h-4.5 text-juno-dark-green" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green transition-colors">New Tax Return</p>
-                <p className="text-xs text-dark-500">Start a new preparation</p>
+                <p className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green transition-colors">START TAX PREPARATION</p>
+                <p className="text-xs text-dark-500">Start preparing with AI assistance</p>
               </div>
               <Icon name="forward" className="w-4 h-4 text-dark-300 group-hover:text-juno-dark-green group-hover:translate-x-0.5 transition-all" />
             </Link>

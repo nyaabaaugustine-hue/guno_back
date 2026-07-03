@@ -3,7 +3,9 @@ import { db } from '@/db'
 import { clients, taxReturns, documents } from '@/db/schema'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/auth'
-import { eq, count } from 'drizzle-orm'
+import { and, eq, count } from 'drizzle-orm'
+import { getFirmId, firmRequiredResponse } from '@/lib/tenant'
+import { maskSSN } from '@/lib/encryption'
 
 export async function GET(
   _request: Request,
@@ -14,13 +16,18 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const firmId = getFirmId(session)
+  if (!firmId) return firmRequiredResponse()
+
   const { id } = await params
 
   try {
+    // Scope by firmId as well as id — prevents one firm from fetching
+    // another firm's client by guessing/enumerating UUIDs.
     const [client] = await db
       .select()
       .from(clients)
-      .where(eq(clients.id, id))
+      .where(and(eq(clients.id, id), eq(clients.firmId, firmId)))
       .limit(1)
 
     if (!client) {
@@ -39,25 +46,13 @@ export async function GET(
 
     return NextResponse.json({
       ...client,
+      // Show only the last 4 digits — never return decrypted SSN to the client.
+      ssn: client.ssn ? maskSSN(client.ssn) : null,
       returnCount: returnCount?.count ?? 0,
       documentCount: docCount?.count ?? 0,
     })
-  } catch {
-    // Return demo client data when DB isn't available
-    const s = session as { user: { firmId?: string | null } }
-    return NextResponse.json({
-      id,
-      firmId: s.user.firmId || 'demo-firm-1',
-      firstName: 'Acme',
-      lastName: 'Corporation',
-      email: 'billing@acme.com',
-      phone: '(555) 123-4567',
-      ssn: null,
-      address: '123 Business Ave, Springfield, IL 62701',
-      notes: 'Key client — multi-entity return',
-      returnCount: 3,
-      documentCount: 7,
-      createdAt: new Date('2026-01-15').toISOString(),
-    })
+  } catch (error) {
+    console.error('Client fetch failed:', error)
+    return NextResponse.json({ error: 'Failed to load client' }, { status: 500 })
   }
 }

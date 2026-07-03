@@ -1,15 +1,10 @@
 // In-memory LRU cache with TTL for database query results
-// Provides: caching, rate limiting, query deduplication, timeout protection
+// Provides: caching, query deduplication, timeout protection
 
 interface CacheEntry<T> {
   data: T
   expiresAt: number
   hitCount: number
-}
-
-interface RateLimitEntry {
-  count: number
-  resetAt: number
 }
 
 export class LRUCache<T> {
@@ -78,48 +73,6 @@ export class LRUCache<T> {
           : '0%',
     }
   }
-}
-
-// ─── Rate Limiter ───────────────────────────────────────────────
-const rateLimitStore = new Map<string, RateLimitEntry>()
-
-export function checkRateLimit(
-  key: string,
-  maxRequests: number,
-  windowSec: number
-): { allowed: boolean; remaining: number; resetIn: number } {
-  const now = Date.now()
-  const entry = rateLimitStore.get(key)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + windowSec * 1000 })
-    return { allowed: true, remaining: maxRequests - 1, resetIn: windowSec }
-  }
-
-  entry.count++
-  if (entry.count > maxRequests) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetIn: Math.max(0, Math.ceil((entry.resetAt - now) / 1000)),
-    }
-  }
-
-  return {
-    allowed: true,
-    remaining: maxRequests - entry.count,
-    resetIn: Math.max(0, Math.ceil((entry.resetAt - now) / 1000)),
-  }
-}
-
-// Cleanup stale rate limit entries every 5 minutes
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now()
-    for (const [key, entry] of rateLimitStore) {
-      if (now > entry.resetAt) rateLimitStore.delete(key)
-    }
-  }, 300_000)
 }
 
 // ─── Query Timeout Wrapper ──────────────────────────────────────

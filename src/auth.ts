@@ -56,17 +56,19 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // Try demo users first (no database needed)
-        const demoUser = DEMO_USERS.find(
-          (u) => u.email === credentials.email && u.password === credentials.password
-        )
-        if (demoUser) {
-          return {
-            id: demoUser.id,
-            email: demoUser.email,
-            name: demoUser.name,
-            role: demoUser.role,
-            firmId: demoUser.firmId,
+        // Demo users only in development (never in production)
+        if (process.env.NODE_ENV !== 'production') {
+          const demoUser = DEMO_USERS.find(
+            (u) => u.email === credentials.email && u.password === credentials.password
+          )
+          if (demoUser) {
+            return {
+              id: demoUser.id,
+              email: demoUser.email,
+              name: demoUser.name,
+              role: demoUser.role,
+              firmId: demoUser.firmId,
+            }
           }
         }
 
@@ -88,7 +90,8 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             firmId: user.firmId,
           }
-        } catch {
+        } catch (error) {
+          console.error('Auth database lookup failed:', error)
           return null
         }
       },

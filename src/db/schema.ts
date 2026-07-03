@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, varchar, timestamp, boolean, jsonb, integer, pgEnum } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-export const userRoleEnum = pgEnum('user_role', ['admin', 'firm_admin', 'preparer', 'reviewer', 'advisor'])
+export const userRoleEnum = pgEnum('user_role', ['admin', 'firm_admin', 'preparer', 'reviewer', 'advisor', 'company_agent'])
 
 export const firms = pgTable('firms', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -35,12 +35,37 @@ export const clients = pgTable('clients', {
   lastName: varchar('last_name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 50 }),
-  ssn: varchar('ssn', { length: 11 }),
+  // Stores AES-256-GCM ciphertext (iv:authTag:ciphertext, hex), never plaintext.
+  ssn: text('ssn'),
   address: text('address'),
   notes: text('notes'),
   createdById: uuid('created_by_id').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export const companies = pgTable('companies', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  firmId: uuid('firm_id').references(() => firms.id).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  industry: varchar('industry', { length: 255 }),
+  contactName: varchar('contact_name', { length: 255 }),
+  contactEmail: varchar('contact_email', { length: 255 }),
+  contactPhone: varchar('contact_phone', { length: 50 }),
+  notes: text('notes'),
+  createdById: uuid('created_by_id').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// Staff (users) assigned to a company. A "company_agent" is a user whose
+// access is scoped to only the companies they're assigned to here.
+export const companyAssignments = pgTable('company_assignments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  assignedById: uuid('assigned_by_id').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
 export const documentTypeEnum = pgEnum('document_type', ['w2', '1099', 'k1', 'brokerage', 'other'])
@@ -82,10 +107,24 @@ export const firmsRelations = relations(firms, ({ many }) => ({
   clients: many(clients),
   documents: many(documents),
   taxReturns: many(taxReturns),
+  companies: many(companies),
 }))
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   firm: one(firms, { fields: [users.firmId], references: [firms.id] }),
+  companyAssignments: many(companyAssignments),
+}))
+
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+  firm: one(firms, { fields: [companies.firmId], references: [firms.id] }),
+  createdBy: one(users, { fields: [companies.createdById], references: [users.id] }),
+  assignments: many(companyAssignments),
+}))
+
+export const companyAssignmentsRelations = relations(companyAssignments, ({ one }) => ({
+  company: one(companies, { fields: [companyAssignments.companyId], references: [companies.id] }),
+  user: one(users, { fields: [companyAssignments.userId], references: [users.id] }),
+  assignedBy: one(users, { fields: [companyAssignments.assignedById], references: [users.id] }),
 }))
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({

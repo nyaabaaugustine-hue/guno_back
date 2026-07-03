@@ -5,19 +5,32 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/auth'
 import { eq, desc, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { getFirmId, firmRequiredResponse, isDemoSession } from '@/lib/tenant'
 
 const DEMO_RETURNS = [
-  { id: '1', clientName: 'Acme Corp', form: '1120', year: 2025, preparer: 'Jane D.', reviewer: null, status: 'In Review', updated: '2h ago' },
-  { id: '2', clientName: 'Bob Smith', form: '1040', year: 2025, preparer: 'Jane D.', reviewer: 'Mike R.', status: 'Completed', updated: '5h ago' },
-  { id: '3', clientName: 'TechStart Inc', form: '1065', year: 2025, preparer: 'Mike R.', reviewer: null, status: 'Processing', updated: '1d ago' },
-  { id: '4', clientName: 'Sarah Johnson', form: '1040', year: 2024, preparer: 'Jane D.', reviewer: null, status: 'Draft', updated: '2d ago' },
-  { id: '5', clientName: 'Global Partners', form: '1120-S', year: 2025, preparer: 'Mike R.', reviewer: 'Jane D.', status: 'In Review', updated: '2d ago' },
+  { id: '1', clientName: 'Acme Corp', clientEmail: 'billing@acme.com', initials: 'AC', formCode: '1120', taxYear: 2025, preparerName: 'Jane D.', status: 'in_review', notes: null },
+  { id: '2', clientName: 'Bob Smith', clientEmail: 'bob@smith.com', initials: 'BS', formCode: '1040', taxYear: 2025, preparerName: 'Jane D.', status: 'completed', notes: null },
+  { id: '3', clientName: 'TechStart Inc', clientEmail: 'info@techstart.io', initials: 'TI', formCode: '1065', taxYear: 2025, preparerName: 'Mike R.', status: 'in_review', notes: null },
+  { id: '4', clientName: 'Sarah Johnson', clientEmail: 'sarah@j.com', initials: 'SJ', formCode: '1040', taxYear: 2024, preparerName: 'Jane D.', status: 'draft', notes: null },
+  { id: '5', clientName: 'Global Partners LLC', clientEmail: 'info@global.com', initials: 'GP', formCode: '1120-S', taxYear: 2025, preparerName: 'Mike R.', status: 'draft', notes: null },
+  { id: '6', clientName: 'John Smith', clientEmail: 'john.smith@email.com', initials: 'JS', formCode: '1040', taxYear: 2025, preparerName: 'Bob Martinez', status: 'in_review', notes: null },
 ]
+
+const PREPARER_FIELDS = {
+  id: taxReturns.id,
+  clientName: sql<string>`CONCAT(${clients.firstName}, ' ', ${clients.lastName})`,
+  clientEmail: clients.email,
+  formCode: sql<string>`COALESCE(${taxReturns.formData}->>'formCode', '1040')`,
+  taxYear: taxReturns.taxYear,
+  preparerName: users.name,
+  status: taxReturns.status,
+  notes: taxReturns.notes,
+}
 
 const createReturnSchema = z.object({
   clientId: z.string().min(1, 'Client is required'),
-  taxYear: z.number().int().min(2020).max(2030),
-  returnType: z.string().min(1),
+  taxYear: z.number().int().min(2020).max(2030).default(new Date().getFullYear()),
+  formCode: z.string().min(1, 'Return type is required'),
   notes: z.string().optional(),
 })
 
@@ -27,29 +40,33 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const firmId = getFirmId(session)
+  if (!firmId) {
+    if (isDemoSession(session)) return NextResponse.json(DEMO_RETURNS)
+    return firmRequiredResponse()
+  }
+
   try {
     const results = await db
-      .select({
-        id: taxReturns.id,
-        clientName: sql<string>`CONCAT(${clients.firstName}, ' ', ${clients.lastName})`,
-        form: taxReturns.status,
-        year: taxReturns.taxYear,
-        preparer: users.name,
-        status: taxReturns.status,
-        updated: taxReturns.updatedAt,
-      })
+      .select(PREPARER_FIELDS)
       .from(taxReturns)
       .leftJoin(clients, eq(taxReturns.clientId, clients.id))
       .leftJoin(users, eq(taxReturns.preparerId!, users.id))
+      .where(eq(taxReturns.firmId, firmId))
       .orderBy(desc(taxReturns.updatedAt))
       .limit(50)
 
-    if (results.length > 0) {
-      return NextResponse.json(results)
-    }
-  } catch {}
-
-  return NextResponse.json(DEMO_RETURNS)
+    const enriched = results.map(r => ({
+      ...r,
+      initials: (r.clientName ?? '').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '??',
+    }))
+    // Empty is a legitimate state for a new firm — return it as-is,
+    // never substitute fake data for a real (if empty) result set.
+    return NextResponse.json(enriched)
+  } catch (error) {
+    console.error('Returns fetch failed:', error)
+    return NextResponse.json({ error: 'Failed to load returns' }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {
@@ -58,16 +75,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const firmId = getFirmId(session)
+  if (!firmId) return firmRequiredResponse()
+
   try {
     const body = await request.json()
     const parsed = createReturnSchema.parse(body)
 
-    const s = session as { user: { id: string; firmId?: string | null } }
-    const firmId = s.user.firmId || 'demo-firm-1'
+    const s = session as { user: { id: string } }
 
     const [ret] = await db.insert(taxReturns).values({
       clientId: parsed.clientId,
       taxYear: parsed.taxYear,
+      formData: { formCode: parsed.formCode },
       firmId,
       preparerId: s.user.id,
       status: 'draft',
@@ -79,6 +99,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation failed' }, { status: 400 })
     }
+    console.error('Return create failed:', error)
     return NextResponse.json({ error: 'Failed to create return' }, { status: 500 })
   }
 }

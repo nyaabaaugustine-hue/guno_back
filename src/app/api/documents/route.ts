@@ -3,8 +3,8 @@ import { db } from '@/db'
 import { documents, clients } from '@/db/schema'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/auth'
-import { eq, desc, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import { and, eq, desc, sql } from 'drizzle-orm'
+import { getFirmId, firmRequiredResponse, isDemoSession } from '@/lib/tenant'
 
 const DEMO_DOCUMENTS = [
   { id: '1', client: 'Acme Corp', name: 'W-2_2025_Acme.pdf', type: 'W-2', size: '245 KB', status: 'Extracted', date: '2h ago' },
@@ -20,6 +20,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const firmId = getFirmId(session)
+  if (!firmId) {
+    if (isDemoSession(session)) return NextResponse.json(DEMO_DOCUMENTS)
+    return firmRequiredResponse()
+  }
+
   try {
     const results = await db
       .select({
@@ -33,23 +39,23 @@ export async function GET() {
       })
       .from(documents)
       .leftJoin(clients, eq(documents.clientId, clients.id))
+      .where(eq(documents.firmId, firmId))
       .orderBy(desc(documents.createdAt))
       .limit(50)
 
-    if (results.length > 0) {
-      return NextResponse.json(results.map(d => ({
-        id: d.id,
-        client: d.clientName || 'Unknown',
-        name: d.name,
-        type: String(d.type || 'other'),
-        size: d.size ? `${d.size} KB` : '—',
-        status: String(d.status || 'uploaded'),
-        date: d.date ? new Date(d.date).toLocaleDateString() : '—',
-      })))
-    }
-  } catch {}
-
-  return NextResponse.json(DEMO_DOCUMENTS)
+    return NextResponse.json(results.map(d => ({
+      id: d.id,
+      client: d.clientName || 'Unknown',
+      name: d.name,
+      type: String(d.type || 'other'),
+      size: d.size ? `${d.size} KB` : '—',
+      status: String(d.status || 'uploaded'),
+      date: d.date ? new Date(d.date).toLocaleDateString() : '—',
+    })))
+  } catch (error) {
+    console.error('Documents fetch failed:', error)
+    return NextResponse.json({ error: 'Failed to load documents' }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {
@@ -57,6 +63,9 @@ export async function POST(request: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const firmId = getFirmId(session)
+  if (!firmId) return firmRequiredResponse()
 
   try {
     const formData = await request.formData()
@@ -68,11 +77,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File and clientId are required' }, { status: 400 })
     }
 
-    const s = session as { user: { id: string; firmId?: string | null } }
-    const firmId = s.user.firmId || 'demo-firm-1'
+    const s = session as { user: { id: string } }
 
-    // Get client's firm to verify they belong to the same firm
-    const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1)
+    // Verify the target client actually belongs to this firm before
+    // attaching a document to it — prevents cross-tenant document writes.
+    const [client] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, clientId), eq(clients.firmId, firmId)))
+      .limit(1)
+
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
 
     const [doc] = await db.insert(documents).values({
       clientId,
@@ -88,6 +105,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(doc, { status: 201 })
   } catch (error) {
+    console.error('Document upload failed:', error)
     return NextResponse.json({ error: 'Failed to upload document' }, { status: 500 })
   }
 }

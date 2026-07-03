@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production'
+
+// upgrade-insecure-requests only makes sense over real TLS. In dev
+// (plain http://localhost), it causes the browser to silently rewrite
+// same-origin fetches (e.g. next-auth's /api/auth/session call) to
+// https://, which fails with a generic "Failed to fetch" since the dev
+// server has no TLS listener.
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline' 'unsafe-eval';
@@ -9,14 +16,13 @@ const cspHeader = `
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  block-all-mixed-content;
-  upgrade-insecure-requests;
+  ${isProd ? 'block-all-mixed-content;\n  upgrade-insecure-requests;' : ''}
 `
 
 const nextConfig = {
   serverExternalPackages: [],
-  turbopack: {
-    root: process.cwd(),
+  outputFileTracingExcludes: {
+    '/*': ['./middleware.js'],
   },
   async headers() {
     return [
@@ -44,13 +50,19 @@ const nextConfig = {
             value: 'strict-origin-when-cross-origin',
           },
           {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
+          // HSTS forces https for this origin for the next 2 years —
+          // only ever send this in production, over real TLS.
+          ...(isProd
+            ? [
+                {
+                  key: 'Strict-Transport-Security',
+                  value: 'max-age=63072000; includeSubDomains; preload',
+                },
+              ]
+            : []),
         ],
       },
     ]
