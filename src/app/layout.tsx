@@ -92,6 +92,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <html lang="en" className={outfit.className}>
+        <head>
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+        </head>
         <body>
           {isAuthPage ? (
             <AuthLayout>{children}</AuthLayout>
