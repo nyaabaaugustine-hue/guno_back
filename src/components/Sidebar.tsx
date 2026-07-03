@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -7,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { canManageStaff } from '@/lib/rbac'
 import {
   LayoutDashboard, FileSearch, ClipboardCheck, Sparkles, LineChart, Users, Building2,
-  Settings, Lightbulb, LogOut, ChevronsLeft, ChevronsRight, type LucideIcon
+  Settings, Lightbulb, LogOut, ChevronsLeft, ChevronsRight, Loader2, type LucideIcon
 } from 'lucide-react'
 
 export interface NavItem {
@@ -131,9 +132,16 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     items: section.items.filter((item) => item.href !== '/organization' || canManageStaff(userRole)),
   }))
 
+  const [signingOut, setSigningOut] = useState(false)
+
   const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push('/auth/signin')
+    setSigningOut(true)
+    try {
+      await signOut({ redirect: false })
+      router.push('/auth/signin')
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   return (
@@ -269,11 +277,12 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               </div>
               <button
                 onClick={handleSignOut}
-                className="p-2 rounded-lg text-dark-300 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                disabled={signingOut}
+                className="p-2 rounded-lg text-dark-300 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
                 aria-label="Sign out"
                 title="Sign out"
               >
-                <LogOut className="w-4 h-4" />
+                {signingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
               </button>
             </>
           )}
@@ -282,11 +291,12 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {collapsed && (
           <button
             onClick={handleSignOut}
-            className="mt-2 w-full flex items-center justify-center p-2 rounded-lg text-dark-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+            disabled={signingOut}
+            className="mt-2 w-full flex items-center justify-center p-2 rounded-lg text-dark-300 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
             aria-label="Sign out"
             title="Sign out"
           >
-            <LogOut className="w-4 h-4" />
+            {signingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
           </button>
         )}
       </div>

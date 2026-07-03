@@ -76,6 +76,7 @@ export default function OrganizationPage() {
   const [assigningCompanyId, setAssigningCompanyId] = useState<string | null>(null)
   const [assignUserId, setAssignUserId] = useState('')
   const [assigning, setAssigning] = useState(false)
+const [removingStaffId, setRemovingStaffId] = useState<string | null>(null)
 
   const loadMembers = async () => {
     try {
@@ -208,8 +209,13 @@ export default function OrganizationPage() {
   }
 
   const handleUnassignStaff = async (companyId: string, userId: string) => {
-    await fetch(`/api/companies/${companyId}/staff?userId=${userId}`, { method: 'DELETE' })
-    await loadCompanies()
+    setRemovingStaffId(userId)
+    try {
+      const res = await fetch(`/api/companies/${companyId}/staff?userId=${userId}`, { method: 'DELETE' })
+      if (res.ok) await loadCompanies()
+    } finally {
+      setRemovingStaffId(null)
+    }
   }
 
   return (
@@ -399,8 +405,8 @@ export default function OrganizationPage() {
                         <span key={s.id} className="inline-flex items-center gap-1.5 text-xs bg-dark-50 text-dark-700 px-2.5 py-1 rounded-full">
                           {s.name}
                           {canManageStaff(myRole) && (
-                            <button onClick={() => handleUnassignStaff(c.id, s.id)} className="text-dark-400 hover:text-red-600" aria-label={`Remove ${s.name}`}>
-                              <Icon name="cancel" className="w-3 h-3" />
+                            <button onClick={() => handleUnassignStaff(c.id, s.id)} disabled={removingStaffId === s.id} className="text-dark-400 hover:text-red-600 disabled:opacity-50" aria-label={`Remove ${s.name}`}>
+                              {removingStaffId === s.id ? <Icon name="refresh" className="w-3 h-3 animate-spin" /> : <Icon name="cancel" className="w-3 h-3" />}
                             </button>
                           )}
                         </span>
@@ -425,9 +431,9 @@ export default function OrganizationPage() {
                         <button
                           onClick={() => handleAssignStaff(c.id)}
                           disabled={!assignUserId || assigning}
-                          className="btn btn-primary text-xs"
+                          className="btn btn-primary text-xs inline-flex items-center gap-1.5"
                         >
-                          {assigning ? 'Assigning…' : 'Assign'}
+                          {assigning ? <><Icon name="refresh" className="w-3 h-3 animate-spin" /> Assigning…</> : 'Assign'}
                         </button>
                       </div>
                     )}

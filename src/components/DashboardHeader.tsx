@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Menu, Search, Bell, User, Settings, LogOut } from 'lucide-react'
+import { Menu, Search, Bell, User, Settings, LogOut, Loader2 } from 'lucide-react'
 
 interface DashboardHeaderProps {
   onMenuClick: () => void
@@ -16,6 +16,7 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const router = useRouter()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const userName = session?.user?.name || 'User'
@@ -50,8 +51,13 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
 
   const handleSignOut = async () => {
     setUserMenuOpen(false)
-    await signOut({ redirect: false })
-    router.push('/auth/signin')
+    setSigningOut(true)
+    try {
+      await signOut({ redirect: false })
+      router.push('/auth/signin')
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   return (
@@ -154,10 +160,11 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               <div className="border-t border-dark-100 pt-1">
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  disabled={signingOut}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Sign out
+                  {signingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                  {signingOut ? 'Signing out...' : 'Sign out'}
                 </button>
               </div>
             </div>

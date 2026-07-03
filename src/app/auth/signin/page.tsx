@@ -8,7 +8,7 @@ import { Eye, EyeOff, ArrowLeft, CheckCircle2 } from 'lucide-react'
 
 function SignInForm() {
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => searchParams.get('email') ?? '')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')

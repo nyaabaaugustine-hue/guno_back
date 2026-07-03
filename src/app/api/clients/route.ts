@@ -5,8 +5,17 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/auth'
 import { and, eq, ilike, or } from 'drizzle-orm'
 import { z } from 'zod'
-import { getFirmId, firmRequiredResponse } from '@/lib/tenant'
+import { getFirmId, firmRequiredResponse, isDemoSession } from '@/lib/tenant'
 import { encryptSSN, maskSSN } from '@/lib/encryption'
+
+// Matches the demo data shape used by /api/companies, /api/documents, and
+// /api/returns — kept here too so the demo login has something to show
+// without ever touching real tenant data.
+const DEMO_CLIENTS = [
+  { id: 'demo-cl-1', firstName: 'John', lastName: 'Doe', email: 'jdoe@juno.tax', phone: '(555) 123-4567', ssn: '•••-••-••••', address: 'Anytown, ST, 12345', createdAt: '2026-06-30' },
+  { id: 'demo-cl-2', firstName: 'Demo', lastName: 'Corporation', email: 'dcorp@juno.tax', phone: '(555) 234-5678', ssn: '•••-••-••••', address: 'Othertown, ST, 23456', createdAt: '2026-06-28' },
+  { id: 'demo-cl-3', firstName: 'Bob', lastName: 'Smith', email: 'bob@smith.com', phone: '(555) 345-6789', ssn: '•••-••-••••', address: 'Springfield, IL, 62701', createdAt: '2026-06-25' },
+]
 
 const createClientSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -27,7 +36,10 @@ export async function GET(request: Request) {
   }
 
   const firmId = getFirmId(session)
-  if (!firmId) return firmRequiredResponse()
+  if (!firmId) {
+    if (isDemoSession(session)) return NextResponse.json(DEMO_CLIENTS)
+    return firmRequiredResponse()
+  }
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search') || ''
