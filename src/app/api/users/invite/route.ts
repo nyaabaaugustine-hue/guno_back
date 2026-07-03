@@ -49,6 +49,8 @@ export async function POST(request: Request) {
       active: true,
     }).returning()
 
+    if (!user) return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+
     if (parsed.role === 'company_agent' && parsed.companyIds?.length && firmId !== 'demo-firm-1') {
       await db.insert(companyAssignments).values(
         parsed.companyIds.map((companyId) => ({
