@@ -89,6 +89,7 @@ export async function POST(request: Request) {
       createdById: s.user.id,
     }).returning()
 
+    if (!client) return NextResponse.json({ error: 'Failed to create client' }, { status: 500 })
     return NextResponse.json({ ...client, ssn: client.ssn ? maskSSN2(client.ssn) : null }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {

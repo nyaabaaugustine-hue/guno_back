@@ -1,35 +1,54 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Icon from '@/components/Icon'
+import { Eye, EyeOff, ArrowLeft, CheckCircle2 } from 'lucide-react'
 
-export default function SignInPage() {
+function SignInForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  const justRegistered = searchParams.get('registered') === '1'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
 
-    setLoading(false)
+      if (result?.error) {
+        // authorize() throws a specific message for rate-limiting; anything
+        // else (wrong email/password, inactive account, etc.) stays generic
+        // so we never confirm whether an email exists in the system.
+        setError(
+          result.error.toLowerCase().includes('too many')
+            ? result.error
+            : 'Invalid email or password'
+        )
+        setLoading(false)
+        return
+      }
 
-    if (result?.error) {
-      setError('Invalid email or password')
-    } else {
       router.push('/dashboard')
+    } catch {
+      // signIn() rejecting (network down, server unreachable, etc.) used to
+      // be unhandled here and would surface as an uncaught console error
+      // with no feedback for the user.
+      setError('Unable to reach the server. Check your connection and try again.')
+      setLoading(false)
     }
   }
 
@@ -44,33 +63,63 @@ export default function SignInPage() {
           <p className="text-sm text-dark-500 mt-1">Enter your credentials to access your account</p>
         </div>
 
+        {justRegistered && !error && (
+          <div className="mb-4 flex items-start gap-2 text-sm text-juno-dark-green bg-juno-light-green px-3 py-2.5 rounded-lg">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Account created. Sign in below to get started.</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="card p-6 space-y-4">
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</div>
+            <div role="alert" className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</div>
           )}
 
           <div>
-            <label className="label">Email</label>
+            <label className="label" htmlFor="email">Email</label>
             <input
+              id="email"
+              name="email"
               type="email"
               className="input"
               placeholder="you@firm.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              autoFocus
               required
             />
           </div>
 
           <div>
-            <label className="label">Password</label>
-            <input
-              type="password"
-              className="input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="flex items-center justify-between">
+              <label className="label" htmlFor="password">Password</label>
+              <Link href="/auth/forgot-password" className="text-xs font-medium text-juno-dark-green hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                className="input pr-10"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary w-full" disabled={loading}>
@@ -84,9 +133,20 @@ export default function SignInPage() {
         </p>
 
         <p className="text-center mt-8">
-          <Link href="/" className="text-xs text-dark-400 hover:text-dark-600 transition-colors"> <Icon name="back" className="w-3 h-3 inline" /> Back to marketing site</Link>
+          <Link href="/" className="inline-flex items-center gap-1 text-xs text-dark-400 hover:text-dark-600 transition-colors">
+            <ArrowLeft className="w-3 h-3" /> Back to marketing site
+          </Link>
         </p>
       </div>
     </div>
+  )
+}
+
+// useSearchParams() requires a Suspense boundary in the app router.
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
   )
 }

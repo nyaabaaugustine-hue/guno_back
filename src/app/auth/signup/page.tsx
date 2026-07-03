@@ -3,12 +3,14 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Icon from '@/components/Icon'
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
 export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [firmName, setFirmName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,6 +19,14 @@ export default function SignUpPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // There's no password-reset flow yet, so a typo here has no recovery
+    // path other than contacting support — catch it client-side.
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -33,9 +43,11 @@ export default function SignUpPage() {
         return
       }
 
-      router.push('/auth/signin')
+      router.push(`/auth/signin?registered=1&email=${encodeURIComponent(email)}`)
     } catch {
-      setError('Something went wrong')
+      // fetch() rejecting (offline, DNS failure, etc.) used to leave the
+      // form silently stuck on "Creating account..." with no feedback.
+      setError('Unable to reach the server. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -94,13 +106,43 @@ export default function SignUpPage() {
           </div>
 
           <div>
-            <label className="label">Password</label>
+            <label className="label" htmlFor="password">Password</label>
+            <div className="relative">
+              <input
+                id="password"
+                name="new-password"
+                type={showPassword ? 'text' : 'password'}
+                className="input pr-10"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-700 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="label" htmlFor="confirmPassword">Confirm password</label>
             <input
-              type="password"
+              id="confirmPassword"
+              name="confirm-password"
+              type={showPassword ? 'text' : 'password'}
               className="input"
-              placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
               minLength={8}
               required
             />
@@ -117,7 +159,9 @@ export default function SignUpPage() {
         </p>
 
         <p className="text-center mt-8">
-          <Link href="/" className="text-xs text-dark-400 hover:text-dark-600 transition-colors"> <Icon name="back" className="w-3 h-3 inline" /> Back to marketing site</Link>
+          <Link href="/" className="inline-flex items-center gap-1 text-xs text-dark-400 hover:text-dark-600 transition-colors">
+            <ArrowLeft className="w-3 h-3" /> Back to marketing site
+          </Link>
         </p>
       </div>
     </div>

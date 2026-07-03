@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+import { rateLimitByEmail } from '@/lib/rate-limit'
 
 // Demo users for testing without a database
 const DEMO_USERS = [
@@ -55,6 +56,14 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
+
+        // Brute-force protection: 10 attempts per email per 15 minutes.
+        // (/api/auth/register already rate-limits account creation — this
+        // was the one auth entry point with no attempt limit at all.)
+        const limit = rateLimitByEmail(credentials.email, 10, 15 * 60 * 1000)
+        if (!limit.allowed) {
+          throw new Error('Too many sign-in attempts. Please try again in a few minutes.')
+        }
 
         // Demo users only in development (never in production)
         if (process.env.NODE_ENV !== 'production') {
