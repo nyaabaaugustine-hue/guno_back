@@ -31,15 +31,15 @@ export default function ReviewerPage() {
           const data = await res.json()
           setReviews(data.map((r: any) => ({
             id: r.id,
-            initials: (r.client || '').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
-            client: r.client || 'Unknown',
-            email: r.email || '',
-            taxYear: r.year || new Date().getFullYear(),
-            returnType: r.form || '1040',
-            preparer: r.preparer || 'Unassigned',
-            assignedTo: r.reviewer || 'Unassigned',
+            initials: (r.clientName || '').split(' ').map((w: string) => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || '??',
+            client: r.clientName || 'Unknown',
+            email: r.clientEmail || '',
+            taxYear: r.taxYear || new Date().getFullYear(),
+            returnType: r.formCode || '1040',
+            preparer: r.preparerName || 'Unassigned',
+            assignedTo: r.reviewerName || 'Unassigned',
             status: r.status || 'draft',
-            hasNotes: false,
+            hasNotes: Boolean(r.notes),
           })))
         }
       } catch {} finally {
@@ -115,29 +115,34 @@ export default function ReviewerPage() {
                 filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-dark-50/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-xs font-semibold text-dark-600">
+                      <button onClick={() => router.push(`/returns/${r.id}`)} className="flex items-center gap-3 group text-left">
+                        <div className="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center text-xs font-semibold text-dark-600 group-hover:bg-juno-light-green group-hover:text-juno-dark-green transition-colors shrink-0">
                           {r.initials}
                         </div>
-                      </div>
+                        <span className="text-sm font-medium text-dark-900 group-hover:text-juno-dark-green group-hover:underline transition-colors">
+                          {r.client}
+                        </span>
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-sm text-dark-600">{r.taxYear}</td>
-                    <td className="px-6 py-4 text-sm text-dark-600">{r.returnType}</td>
+                    <td className="px-6 py-4 text-sm text-dark-600">
+                      <code className="text-xs font-mono font-medium text-dark-600 bg-dark-50 px-2 py-1 rounded-md">{r.returnType}</code>
+                    </td>
                     <td className="px-6 py-4 text-sm text-dark-600">{r.preparer}</td>
                     <td className="px-6 py-4 text-sm text-dark-600">{r.assignedTo}</td>
                     <td className="px-6 py-4">
                       <span className={`badge ${
-                        r.status === 'Completed' ? 'badge-green' :
+                        r.status === 'completed' ? 'badge-green' :
                         r.status === 'in_review' ? 'badge-blue' :
                         'badge'
-                      }`}>{r.status}</span>
+                      }`}>{r.status.split('_').map((w: string) => (w[0]?.toUpperCase() ?? '') + w.slice(1)).join(' ')}</span>
                     </td>
                     <td className="px-6 py-4 text-sm text-dark-400">
                       {r.hasNotes ? '📝' : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => router.push('/returns')}
+                        onClick={() => router.push(`/returns/${r.id}`)}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-juno-dark-green hover:underline"
                       >
                         <Icon name="play" className="w-3.5 h-3.5" />

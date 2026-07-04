@@ -229,7 +229,7 @@ export default function PreparerPage() {
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => router.push(`/returns`)}
+                        onClick={() => router.push(`/returns/${r.id}`)}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-juno-dark-green hover:underline"
                       >
                         <Icon name="play" className="w-3.5 h-3.5" />
@@ -319,7 +319,7 @@ export default function PreparerPage() {
             <div className="pt-2 flex gap-3">
               <button onClick={() => setSelected(null)} className="btn btn-secondary flex-1">Close</button>
               <button
-                onClick={() => { router.push('/returns'); setSelected(null) }}
+                onClick={() => { router.push(`/returns/${selected.id}`); setSelected(null) }}
                 className="btn btn-primary flex-1"
               >
                 <Icon name="play" className="w-3.5 h-3.5" />

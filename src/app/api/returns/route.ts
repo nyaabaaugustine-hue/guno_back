@@ -4,16 +4,19 @@ import { taxReturns, clients, users } from '@/db/schema'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/auth'
 import { and, eq, desc, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { getFirmId, firmRequiredResponse, isDemoSession } from '@/lib/tenant'
 
+const reviewerUsers = alias(users, 'reviewer_users')
+
 const DEMO_RETURNS = [
-  { id: '1', clientName: 'Acme Corp', clientEmail: 'billing@acme.com', initials: 'AC', formCode: '1120', taxYear: 2025, preparerName: 'Jane D.', status: 'in_review', notes: null },
-  { id: '2', clientName: 'Bob Smith', clientEmail: 'bob@smith.com', initials: 'BS', formCode: '1040', taxYear: 2025, preparerName: 'Jane D.', status: 'completed', notes: null },
-  { id: '3', clientName: 'TechStart Inc', clientEmail: 'info@techstart.io', initials: 'TI', formCode: '1065', taxYear: 2025, preparerName: 'Mike R.', status: 'in_review', notes: null },
-  { id: '4', clientName: 'Sarah Johnson', clientEmail: 'sarah@j.com', initials: 'SJ', formCode: '1040', taxYear: 2024, preparerName: 'Jane D.', status: 'draft', notes: null },
-  { id: '5', clientName: 'Global Partners LLC', clientEmail: 'info@global.com', initials: 'GP', formCode: '1120-S', taxYear: 2025, preparerName: 'Mike R.', status: 'draft', notes: null },
-  { id: '6', clientName: 'John Smith', clientEmail: 'john.smith@email.com', initials: 'JS', formCode: '1040', taxYear: 2025, preparerName: 'Bob Martinez', status: 'in_review', notes: null },
+  { id: '1', clientName: 'Acme Corp', clientEmail: 'billing@acme.com', initials: 'AC', formCode: '1120', taxYear: 2025, preparerName: 'Jane D.', reviewerId: null, reviewerName: null, status: 'in_review', notes: null },
+  { id: '2', clientName: 'Bob Smith', clientEmail: 'bob@smith.com', initials: 'BS', formCode: '1040', taxYear: 2025, preparerName: 'Jane D.', reviewerId: null, reviewerName: null, status: 'completed', notes: null },
+  { id: '3', clientName: 'TechStart Inc', clientEmail: 'info@techstart.io', initials: 'TI', formCode: '1065', taxYear: 2025, preparerName: 'Mike R.', reviewerId: null, reviewerName: null, status: 'in_review', notes: null },
+  { id: '4', clientName: 'Sarah Johnson', clientEmail: 'sarah@j.com', initials: 'SJ', formCode: '1040', taxYear: 2024, preparerName: 'Jane D.', reviewerId: null, reviewerName: null, status: 'draft', notes: null },
+  { id: '5', clientName: 'Global Partners LLC', clientEmail: 'info@global.com', initials: 'GP', formCode: '1120-S', taxYear: 2025, preparerName: 'Mike R.', reviewerId: null, reviewerName: null, status: 'draft', notes: null },
+  { id: '6', clientName: 'John Smith', clientEmail: 'john.smith@email.com', initials: 'JS', formCode: '1040', taxYear: 2025, preparerName: 'Bob Martinez', reviewerId: null, reviewerName: null, status: 'in_review', notes: null },
 ]
 
 const PREPARER_FIELDS = {
@@ -23,6 +26,8 @@ const PREPARER_FIELDS = {
   formCode: sql<string>`COALESCE(${taxReturns.formData}->>'formCode', '1040')`,
   taxYear: taxReturns.taxYear,
   preparerName: users.name,
+  reviewerId: taxReturns.reviewerId,
+  reviewerName: reviewerUsers.name,
   status: taxReturns.status,
   notes: taxReturns.notes,
 }
@@ -52,6 +57,7 @@ export async function GET() {
       .from(taxReturns)
       .leftJoin(clients, eq(taxReturns.clientId, clients.id))
       .leftJoin(users, eq(taxReturns.preparerId!, users.id))
+      .leftJoin(reviewerUsers, eq(taxReturns.reviewerId, reviewerUsers.id))
       .where(eq(taxReturns.firmId, firmId))
       .orderBy(desc(taxReturns.updatedAt))
       .limit(50)
