@@ -30,11 +30,13 @@ function SignInForm() {
       })
 
       if (result?.error) {
-        // authorize() throws a specific message for rate-limiting; anything
+        // authorize() throws specific messages for rate-limiting and for
+        // backend/service problems (e.g. database unreachable); anything
         // else (wrong email/password, inactive account, etc.) stays generic
         // so we never confirm whether an email exists in the system.
+        const lower = result.error.toLowerCase()
         setError(
-          result.error.toLowerCase().includes('too many')
+          lower.includes('too many') || lower.includes('unavailable') || lower.includes('timed out')
             ? result.error
             : 'Invalid email or password'
         )
