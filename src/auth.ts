@@ -5,6 +5,7 @@ import { db } from '@/db'
 import { users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { rateLimitByEmail } from '@/lib/rate-limit'
+import { withTimeout } from '@/lib/with-timeout'
 
 // Demo users for testing without a database
 const DEMO_USERS = [
@@ -81,11 +82,19 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // Fall back to database lookup
+        // Fall back to database lookup. Bound this with a timeout so a slow
+        // or unreachable database (e.g. a misconfigured/missing DATABASE_URL
+        // in the deployment) fails fast with a clear error, instead of
+        // leaving the sign-in button stuck on "Signing in..." until the
+        // serverless function itself times out.
         try {
-          const user = await db.query.users.findFirst({
-            where: eq(users.email, credentials.email),
-          })
+          const user = await withTimeout(
+            db.query.users.findFirst({
+              where: eq(users.email, credentials.email),
+            }),
+            8000,
+            'Database lookup timed out'
+          )
 
           if (!user || !user.active) return null
 
@@ -101,7 +110,11 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Auth database lookup failed:', error)
-          return null
+          // Surface a distinct, user-facing error rather than silently
+          // returning null (which the UI reports as "Invalid email or
+          // password" — misleading when the real problem is an unreachable
+          // database/service, not bad credentials).
+          throw new Error('Sign-in is temporarily unavailable. Please try again in a moment.')
         }
       },
     }),
